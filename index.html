@@ -1118,6 +1118,40 @@ function setZoneEStreakStore(store){
   save(LS.ZONE_E_STREAKS, normalized);
 }
 
+function renderZoneETaskProgress(task, zoneEStore){
+  if(!zoneEStore || !task || task.kind !== 'recurring') return '';
+  const key = getNoiseTaskKey(task);
+  if(!key) return '';
+  const entry = zoneEStore[key];
+  if(!entry) return '';
+
+  const level = (entry.level ?? entry.basePoints ?? ZONE_E_START_LEVEL);
+  const streakValue = parseNoiseStreak(entry.streak);
+  const nextRequirement = getZoneENextRequirement(level);
+  const crownActive = !!entry.crownActive || (level != null && level >= ZONE_E_CROWN_LEVEL);
+  const progressRatio = crownActive || !nextRequirement
+    ? 1
+    : Math.max(0, Math.min(1, nextRequirement ? streakValue / nextRequirement : 0));
+  const widthPercent = Math.round(progressRatio * 1000) / 10;
+  const progressLabel = crownActive
+    ? 'Crown'
+    : nextRequirement
+      ? `${streakValue}/${nextRequirement}`
+      : `${streakValue}`;
+
+  return `
+    <div class="zone-e-progress">
+      <div class="zone-e-progress-header">
+        <span class="zone-e-progress-label">${task.text}</span>
+        <span class="zone-e-progress-value">${progressLabel}</span>
+      </div>
+      <div class="zone-e-progress-bar">
+        <div class="zone-e-progress-fill" style="width:${widthPercent}%"></div>
+      </div>
+    </div>
+  `;
+}
+
 function getNoiseTaskKey(task){
   if(!task || typeof task !== 'object') return null;
   if(typeof task.recurringId === 'number') return `rec:${task.recurringId}`;
@@ -3051,6 +3085,9 @@ async function viewTasks(){
 
       const listHtml = g.list.length
         ? g.list.map(t=>{
+            const zoneEProgressHtml = z.kind === 'e'
+              ? renderZoneETaskProgress(t, zoneEStore)
+              : '';
             return `
               <li class="task ${t.done?'done':''}" data-id="${t.id}" data-kind="${t.kind||'single'}">
                 <div class="task-inner">
@@ -3060,6 +3097,7 @@ async function viewTasks(){
                     ${renderTaskKindBadge(t, z)}
                     ${renderTaskPoints(t.points, t.aiReason, getTaskPointExtras(t, z.kind, pointExtraStores))}
                   </div>
+                  ${zoneEProgressHtml}
                 </div>
                 <button class="del-btn" data-id="${t.id}">×</button>
               </li>
@@ -3068,53 +3106,20 @@ async function viewTasks(){
         : emptyStateHtml;
 
       let streakInfoHtml = '';
-      if(z.kind === 'noise' || z.kind === 'e'){
-        const targetStore = z.kind === 'noise' ? noiseStore : zoneEStore;
+      if(z.kind === 'noise'){
         const streakDetails = [];
         g.list
           .filter(task => task.kind === 'recurring')
           .forEach(task => {
             const key = getNoiseTaskKey(task);
             if(!key) return;
-            const entry = targetStore[key];
+            const entry = noiseStore[key];
             if(!entry) return;
-
-            if(z.kind === 'e'){
-              const level = (entry.level ?? entry.basePoints ?? ZONE_E_START_LEVEL);
-              const streakValue = parseNoiseStreak(entry.streak);
-              const nextRequirement = getZoneENextRequirement(level);
-              const crownActive = !!entry.crownActive || (level != null && level >= ZONE_E_CROWN_LEVEL);
-              const progressRatio = crownActive || !nextRequirement
-                ? 1
-                : Math.max(0, Math.min(1, nextRequirement ? streakValue / nextRequirement : 0));
-              const widthPercent = Math.round(progressRatio * 1000) / 10;
-              const progressLabel = crownActive
-                ? 'Crown'
-                : nextRequirement
-                  ? `${streakValue}/${nextRequirement}`
-                  : `${streakValue}`;
-              streakDetails.push(`
-                <div class="zone-e-progress">
-                  <div class="zone-e-progress-header">
-                    <span class="zone-e-progress-label">${task.text}</span>
-                    <span class="zone-e-progress-value">${progressLabel}</span>
-                  </div>
-                  <div class="zone-e-progress-bar">
-                    <div class="zone-e-progress-fill" style="width:${widthPercent}%"></div>
-                  </div>
-                </div>
-              `);
-            }else{
-              const streakValue = parseNoiseStreak(entry.streak);
-              if(streakValue <= 0) return;
-              streakDetails.push(`<div class="muted">${task.text}: ${streakValue} ngày</div>`);
-            }
+            const streakValue = parseNoiseStreak(entry.streak);
+            if(streakValue <= 0) return;
+            streakDetails.push(`<div class="muted">${task.text}: ${streakValue} ngày</div>`);
           });
-        if(z.kind === 'e' && streakDetails.length){
-          streakInfoHtml = `<div class="zone-e-progress-list">${streakDetails.join('')}</div>`;
-        }else{
-          streakInfoHtml = streakDetails.join('');
-        }
+        streakInfoHtml = streakDetails.join('');
       }
 
       return `
