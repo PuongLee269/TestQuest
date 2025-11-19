@@ -385,7 +385,7 @@ input[type="checkbox"]{
 .zone-e-progress{
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:4px;
 }
 
 .zone-e-progress-header{
@@ -404,10 +404,12 @@ input[type="checkbox"]{
   color:var(--muted);
 }
 
-.zone-e-progress-bar{
-  height:10px;
+.zone-e-progress-bar,
+.zone-noise-progress-bar{
+  height:6px;
+  margin-top:2px;
   border-radius:999px;
-  background:rgba(22,163,74,.2);
+  background:rgba(22,163,74,.18);
   overflow:hidden;
 }
 
@@ -1143,9 +1145,8 @@ function renderZoneETaskProgress(task, zoneEStore){
     <div class="zone-e-progress">
       <div class="zone-e-progress-header">
         <span class="zone-e-progress-label">${task.text}</span>
-        <span class="zone-e-progress-value">${progressLabel}</span>
       </div>
-      <div class="zone-e-progress-bar">
+      <div class="zone-e-progress-bar" aria-label="Tiến độ ${progressLabel}">
         <div class="zone-e-progress-fill" style="width:${widthPercent}%"></div>
       </div>
     </div>
