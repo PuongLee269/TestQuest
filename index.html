@@ -108,7 +108,7 @@ h1 .app-version{
 .hero-meta span{display:inline-flex;align-items:center;gap:6px}
 .hero-progress{margin-top:18px;width:100%}
 .hero-progress-bar{
-  height:10px;
+  height:4px;
   background:rgba(255,255,255,.35);
   border-radius:999px;
   overflow:hidden;
@@ -116,23 +116,10 @@ h1 .app-version{
 .hero-progress-fill{
   height:100%;
   width:0;
-  background:linear-gradient(90deg,#ff5f6d,#ffc371,#f9f871,#a8ff78,#78ffd6,#57c7ff,#9d50bb);
-  background-size:300% 100%;
-  box-shadow:0 6px 18px rgba(255,255,255,.35);
+  background:#ff3b30;
+  box-shadow:0 0 6px rgba(255,59,48,.4);
   border-radius:999px;
   transition:width .6s ease;
-  animation:hero-progress-rainbow 6s linear infinite;
-}
-@keyframes hero-progress-rainbow{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
-}
-.hero-progress-label{
-  margin-top:8px;
-  font-size:14px;
-  letter-spacing:.2px;
-  opacity:.9;
 }
 
 /* Tabs bar */
@@ -693,7 +680,6 @@ th{
           <div class="hero-progress-bar">
             <div class="hero-progress-fill" data-hero="xp-fill"></div>
           </div>
-          <div class="hero-progress-label" data-hero="xp-label">0 / 100 E</div>
         </div>
       </div>
     </div>
@@ -903,8 +889,7 @@ const heroRefs = heroEl ? {
   level: heroEl.querySelector('[data-hero="level"]'),
   xp: heroEl.querySelector('[data-hero="xp"]'),
   weeklyAvg: heroEl.querySelector('[data-hero="weekly-avg"]'),
-  xpFill: heroEl.querySelector('[data-hero="xp-fill"]'),
-  xpLabel: heroEl.querySelector('[data-hero="xp-label"]')
+  xpFill: heroEl.querySelector('[data-hero="xp-fill"]')
 } : {};
 
 /* ==============================
@@ -1546,9 +1531,6 @@ function renderHero(){
       const valueText = `${rounded >= 0 ? '+' : '-'}${Math.abs(rounded).toFixed(decimals)}`;
       heroRefs.weeklyAvg.textContent = `TB tuần: ${valueText} E/ngày`;
     }
-  }
-  if(heroRefs.xpLabel){
-    heroRefs.xpLabel.textContent = need ? `${xp} / ${need} E tới level tiếp theo` : `${xp} E (tối đa)`;
   }
   if(heroRefs.xpFill){
     heroRefs.xpFill.style.width = `${pct}%`;
