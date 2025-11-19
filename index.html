@@ -374,6 +374,50 @@ input[type="checkbox"]{
   background:linear-gradient(90deg,#8b7cff 0%,#b09bff 100%);
 }
 
+.zone-e-progress-list{
+  margin:12px 0 0;
+  padding:0 20px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.zone-e-progress{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.zone-e-progress-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:13px;
+  font-weight:500;
+}
+
+.zone-e-progress-label{
+  font-weight:600;
+}
+
+.zone-e-progress-value{
+  color:var(--muted);
+}
+
+.zone-e-progress-bar{
+  height:10px;
+  border-radius:999px;
+  background:rgba(22,163,74,.2);
+  overflow:hidden;
+}
+
+.zone-e-progress-fill{
+  height:100%;
+  background:#16a34a;
+  border-radius:999px;
+  transition:width .3s ease;
+}
+
 /* task lists */
 ul{list-style:none;margin:0;padding:0}
 .archive-toolbar{
@@ -3034,18 +3078,43 @@ async function viewTasks(){
             if(!key) return;
             const entry = targetStore[key];
             if(!entry) return;
-            const streakValue = parseNoiseStreak(entry.streak);
-            if(streakValue <= 0) return;
 
             if(z.kind === 'e'){
-              const nextRequirement = getZoneENextRequirement(entry.level ?? entry.basePoints);
-              const ratioText = nextRequirement ? `${streakValue}/${nextRequirement}` : `${streakValue}`;
-              streakDetails.push(`<div class="muted">${task.text}: ${ratioText}</div>`);
+              const level = (entry.level ?? entry.basePoints ?? ZONE_E_START_LEVEL);
+              const streakValue = parseNoiseStreak(entry.streak);
+              const nextRequirement = getZoneENextRequirement(level);
+              const crownActive = !!entry.crownActive || (level != null && level >= ZONE_E_CROWN_LEVEL);
+              const progressRatio = crownActive || !nextRequirement
+                ? 1
+                : Math.max(0, Math.min(1, nextRequirement ? streakValue / nextRequirement : 0));
+              const widthPercent = Math.round(progressRatio * 1000) / 10;
+              const progressLabel = crownActive
+                ? 'Crown'
+                : nextRequirement
+                  ? `${streakValue}/${nextRequirement}`
+                  : `${streakValue}`;
+              streakDetails.push(`
+                <div class="zone-e-progress">
+                  <div class="zone-e-progress-header">
+                    <span class="zone-e-progress-label">${task.text}</span>
+                    <span class="zone-e-progress-value">${progressLabel}</span>
+                  </div>
+                  <div class="zone-e-progress-bar">
+                    <div class="zone-e-progress-fill" style="width:${widthPercent}%"></div>
+                  </div>
+                </div>
+              `);
             }else{
+              const streakValue = parseNoiseStreak(entry.streak);
+              if(streakValue <= 0) return;
               streakDetails.push(`<div class="muted">${task.text}: ${streakValue} ngày</div>`);
             }
           });
-        streakInfoHtml = streakDetails.join('');
+        if(z.kind === 'e' && streakDetails.length){
+          streakInfoHtml = `<div class="zone-e-progress-list">${streakDetails.join('')}</div>`;
+        }else{
+          streakInfoHtml = streakDetails.join('');
+        }
       }
 
       return `
