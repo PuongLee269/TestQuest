@@ -928,7 +928,10 @@ function updateSavedThemeBackgrounds(partial){
 const NOISE_STREAK_MIN_POINTS = -5;
 const NOISE_SKULL_THRESHOLD = 5;
 const NOISE_EXTRA_PENALTY_THRESHOLD = 10;
-const ZONE_E_CROWN_THRESHOLD = 10;
+const ZONE_E_START_LEVEL = 1;
+const ZONE_E_CROWN_LEVEL = 7;
+const ZONE_E_FIRST_MILESTONE = 5;
+const ZONE_E_MILESTONE_MULTIPLIER = 1.2;
 
 function clampNoiseBasePoints(value){
   const n = Number(value);
@@ -956,6 +959,57 @@ function parseNoiseStreak(value){
   const n = Number(value);
   if(!Number.isFinite(n) || n <= 0) return 0;
   return Math.floor(n);
+}
+
+function clampZoneELevel(value){
+  const n = Number(value);
+  if(!Number.isFinite(n)) return ZONE_E_START_LEVEL;
+  return Math.min(ZONE_E_CROWN_LEVEL, Math.max(ZONE_E_START_LEVEL, Math.floor(n)));
+}
+
+const ZONE_E_MILESTONES = (() => {
+  const requirements = {};
+  let needed = ZONE_E_FIRST_MILESTONE;
+  for(let level = ZONE_E_START_LEVEL; level < ZONE_E_CROWN_LEVEL; level++){
+    requirements[level] = Math.ceil(needed);
+    needed = Math.ceil(needed * ZONE_E_MILESTONE_MULTIPLIER);
+  }
+  return requirements;
+})();
+
+function getZoneENextRequirement(level){
+  const clamped = clampZoneELevel(level);
+  if(clamped >= ZONE_E_CROWN_LEVEL) return null;
+  return ZONE_E_MILESTONES[clamped] || null;
+}
+
+function applyZoneEProgress(prevEntry, didComplete){
+  const prevLevel = clampZoneELevel(prevEntry && (prevEntry.level ?? prevEntry.basePoints));
+  let streak = parseNoiseStreak(prevEntry && prevEntry.streak);
+  let level = prevLevel;
+
+  if(didComplete){
+    streak += 1;
+    while(level < ZONE_E_CROWN_LEVEL){
+      const needed = getZoneENextRequirement(level);
+      if(needed && streak >= needed){
+        streak -= needed;
+        level += 1;
+      }else{
+        break;
+      }
+    }
+  }else{
+    if(level >= ZONE_E_CROWN_LEVEL){
+      level = Math.max(ZONE_E_START_LEVEL, level - 1);
+    }else{
+      level = ZONE_E_START_LEVEL;
+    }
+    streak = 0;
+  }
+
+  const crownActive = level >= ZONE_E_CROWN_LEVEL;
+  return { basePoints: level, level, streak, crownActive };
 }
 
 function getNoiseStreakStore(){
@@ -990,11 +1044,11 @@ function setNoiseStreakStore(store){
 
 function normalizeZoneEEntry(raw){
   if(!raw || typeof raw !== 'object') return null;
-  const baseVal = Number(raw.basePoints);
-  const basePoints = Number.isFinite(baseVal) ? baseVal : 0;
+  const levelVal = raw.level != null ? raw.level : raw.basePoints;
+  const level = clampZoneELevel(levelVal);
   const streak = parseNoiseStreak(raw.streak);
-  const crownActive = !!raw.crownActive;
-  return { basePoints, streak, crownActive };
+  const crownActive = level >= ZONE_E_CROWN_LEVEL ? true : !!raw.crownActive;
+  return { basePoints: level, level, streak, crownActive };
 }
 
 function getZoneEStreakStore(){
@@ -1792,11 +1846,23 @@ function getTaskPointExtras(task, zoneKind, stores){
   }
   if(zoneKind === 'e' && task.kind === 'recurring'){
     const key = getNoiseTaskKey(task);
-    if(key && zoneEStore[key] && zoneEStore[key].crownActive){
-      const streak = parseNoiseStreak(zoneEStore[key].streak);
+    if(key && zoneEStore[key]){
+      const entry = zoneEStore[key];
+      const level = clampZoneELevel(entry.level ?? entry.basePoints);
+      const streak = parseNoiseStreak(entry.streak);
+      const crownActive = level >= ZONE_E_CROWN_LEVEL || !!entry.crownActive;
+      const next = getZoneENextRequirement(level);
+      const tooltipParts = [`Zone E Level ${level}/${ZONE_E_CROWN_LEVEL}`];
+      if(crownActive){
+        tooltipParts.push('Crown đang kích hoạt');
+      }else if(next){
+        tooltipParts.push(`Streak: ${streak}/${next}`);
+      }else{
+        tooltipParts.push(`Streak: ${streak}`);
+      }
       return {
-        icon:'👑',
-        tooltip:`Streak Zone E: ${streak}`
+        icon: crownActive ? '👑' : '',
+        tooltip: tooltipParts.join(' — ')
       };
     }
   }
@@ -2141,36 +2207,22 @@ function performDayRollover(opts={}){
           validZoneEKeys.add(key);
           const rec = recMap.get(task.recurringId);
           const prevEntry = nextZoneEStreakStore[key];
-          const recPoints = rec && Number(rec.points);
-          const taskPoints = Number(task.points);
-          let basePointsCandidate = Number.isFinite(recPoints) ? recPoints : taskPoints;
-          if(prevEntry && prevEntry.crownActive){
-            basePointsCandidate -= 1;
-          }
-          if(!Number.isFinite(basePointsCandidate)){
-            basePointsCandidate = prevEntry ? prevEntry.basePoints : 0;
-          }
-          basePointsCandidate = Number.isFinite(basePointsCandidate) ? basePointsCandidate : 0;
+          const updated = applyZoneEProgress(prevEntry, !!task.done);
 
-          let streak = parseNoiseStreak(prevEntry && prevEntry.streak);
-          if(task.done){
-            streak = streak + 1;
-          }else{
-            streak = 0;
-          }
-          const crownActive = streak > ZONE_E_CROWN_THRESHOLD;
-          const effectivePoints = basePointsCandidate + (crownActive ? 1 : 0);
-
-          if(!prevEntry || prevEntry.basePoints !== basePointsCandidate || prevEntry.streak !== streak || prevEntry.crownActive !== crownActive){
-            nextZoneEStreakStore[key] = { basePoints: basePointsCandidate, streak, crownActive };
+          if(!prevEntry
+            || prevEntry.basePoints !== updated.basePoints
+            || prevEntry.level !== updated.level
+            || prevEntry.streak !== updated.streak
+            || prevEntry.crownActive !== updated.crownActive){
+            nextZoneEStreakStore[key] = updated;
             zoneEStoreChanged = true;
           }
 
-          if(Number(task.points) !== effectivePoints){
-            task.points = effectivePoints;
+          if(Number(task.points) !== updated.level){
+            task.points = updated.level;
           }
-          if(rec && Number(rec.points) !== effectivePoints){
-            rec.points = effectivePoints;
+          if(rec && Number(rec.points) !== updated.level){
+            rec.points = updated.level;
             recsChanged = true;
           }
         }
@@ -2940,7 +2992,7 @@ async function viewTasks(){
       const zoneHeaderNote = (() => {
         switch(z.kind){
           case 'e':
-            return `Streak > ${ZONE_E_CROWN_THRESHOLD} sẽ cộng thêm +1 E (crown).`;
+            return `Zone E: bắt đầu +1; +1 sau 5 streak đầu, mỗi mốc sau cần x1.2 (làm tròn lên) tới +7 (crown). Bỏ ngày trước crown reset về +1; sau crown rớt -1 cấp.`;
           case 'noise':
             return `Penalty tăng dần; skull ở ${NOISE_SKULL_THRESHOLD}, phạt bổ sung tại ${NOISE_EXTRA_PENALTY_THRESHOLD}.`;
           default:
