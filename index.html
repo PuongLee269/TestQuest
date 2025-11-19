@@ -2820,6 +2820,53 @@ function attachSwipeHandlersForTasks(){
       const tasks = getTasks();
       const targetTask = tasks.find(t=>t.id===id);
 
+      const zones = getZones();
+      const zone = targetTask ? zones.find(z=>z.id===targetTask.zoneId) : null;
+      const isNoiseZone = zone && zone.kind === 'noise';
+
+      if(isNoiseZone && targetTask){
+        const points = Number(targetTask.points);
+        const isBasePenalty = points === -1;
+        if(!isBasePenalty){
+          if(points <= -2){
+            const resetMessage = `Nhiệm vụ Noise đang có điểm ${points}.\nChỉ có thể xoá khi điểm phạt quay về -1. Reset về -1 ngay bây giờ?`;
+            const shouldReset = confirm(resetMessage);
+            if(shouldReset){
+              const resetPoints = clampNoiseBasePoints(-1);
+              const updatedTasks = tasks.map(task => task.id === id ? { ...task, points: resetPoints } : task);
+              setTasks(updatedTasks);
+
+              if(targetTask.kind === 'recurring' && typeof targetTask.recurringId === 'number'){
+                const recs = getRecurring();
+                const nextRecs = recs.map(rec => {
+                  if(rec.id !== targetTask.recurringId) return rec;
+                  const nextRec = { ...rec, points: resetPoints, noiseBasePoints: resetPoints };
+                  if('reason' in nextRec){
+                    delete nextRec.reason;
+                  }
+                  return nextRec;
+                });
+                save(LS.RECUR, nextRecs);
+              }
+
+              const noiseKey = getNoiseTaskKey(targetTask);
+              if(noiseKey){
+                const store = getNoiseStreakStore();
+                const nextStore = { ...store, [noiseKey]: { basePoints: resetPoints, streak: 0 } };
+                setNoiseStreakStore(nextStore);
+              }
+
+              render('tasks');
+            }else{
+              alert('Không thể xoá nhiệm vụ Zone Noise khi điểm phạt thấp hơn -1. Hãy reset về -1 trước rồi thử lại.');
+            }
+          }else{
+            alert('Chỉ có thể xoá nhiệm vụ Zone Noise khi điểm phạt đang ở -1.');
+          }
+          return;
+        }
+      }
+
       if(targetTask && targetTask.kind === 'recurring'){
         const recId = Number(targetTask.recurringId);
         if(recId){
