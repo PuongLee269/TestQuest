@@ -434,6 +434,7 @@ ul{list-style:none;margin:0;padding:0}
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:12px;
   padding:12px 16px;
   border-bottom:1px solid rgba(0,0,0,.05);
   background:linear-gradient(135deg,#fafbff 0%,#f6f7ff 100%);
@@ -3047,22 +3048,10 @@ async function viewTasks(){
         streakInfoHtml = streakDetails.join('');
       }
 
-      const zoneHeaderNote = (() => {
-        switch(z.kind){
-          case 'e':
-            return `Zone E: bắt đầu +1; +1 sau 5 streak đầu, mỗi mốc sau cần x1.2 (làm tròn lên) tới +7 (crown). Bỏ ngày trước crown reset về +1; sau crown rớt -1 cấp.`;
-          case 'noise':
-            return `Penalty tăng dần; skull ở ${NOISE_SKULL_THRESHOLD}, phạt bổ sung tại ${NOISE_EXTRA_PENALTY_THRESHOLD}.`;
-          default:
-            return 'Không áp dụng streak.';
-        }
-      })();
-
       return `
       <section class="zone">
         <header class="${headerClass}" style="${headerStyle}">
           <div><b>${z.name}</b> <span class="badge">${g.kindLabel}</span></div>
-          <div class="muted zone-note">${zoneHeaderNote}</div>
           <div class="badge">${g.progressText}</div>
         </header>
         <ul>
