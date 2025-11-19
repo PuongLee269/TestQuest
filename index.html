@@ -106,18 +106,31 @@ h1 .app-version{
   font-weight:500;
 }
 .hero-meta span{display:inline-flex;align-items:center;gap:6px}
-.hero-progress{margin-top:18px;width:100%}
+.hero-progress{
+  margin-top:18px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.hero-progress-label{
+  font-size:14px;
+  font-weight:500;
+  letter-spacing:.3px;
+  color:rgba(255,255,255,.92);
+}
 .hero-progress-bar{
-  height:4px;
+  height:10px;
   background:rgba(255,255,255,.35);
   border-radius:999px;
   overflow:hidden;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.25);
 }
 .hero-progress-fill{
   height:100%;
   width:0;
-  background:#ff3b30;
-  box-shadow:0 0 6px rgba(255,59,48,.4);
+  background:linear-gradient(90deg,#ffe7a1 0%,#ffc857 100%);
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
   border-radius:999px;
   transition:width .6s ease;
 }
@@ -361,49 +374,25 @@ input[type="checkbox"]{
   background:linear-gradient(90deg,#8b7cff 0%,#b09bff 100%);
 }
 
-.zone-e-progress-list{
-  margin:12px 0 0;
-  padding:0 20px 20px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+.task-progress{
+  width:100%;
+  margin-top:8px;
 }
 
-.zone-e-progress{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-
-.zone-e-progress-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  font-size:13px;
-  font-weight:500;
-}
-
-.zone-e-progress-label{
-  font-weight:600;
-}
-
-.zone-e-progress-value{
-  color:var(--muted);
-}
-
-.zone-e-progress-bar,
-.zone-noise-progress-bar{
-  height:6px;
-  margin-top:2px;
+.task-progress-bar{
+  width:100%;
+  height:4px;
   border-radius:999px;
-  background:rgba(22,163,74,.18);
+  background:rgba(255,59,48,.2);
   overflow:hidden;
 }
 
-.zone-e-progress-fill{
+.task-progress-fill{
+  width:0;
   height:100%;
-  background:#16a34a;
   border-radius:999px;
+  background:#ff3b30;
+  box-shadow:0 0 6px rgba(255,59,48,.4);
   transition:width .3s ease;
 }
 
@@ -411,6 +400,8 @@ input[type="checkbox"]{
   display:flex;
   flex-direction:column;
   gap:6px;
+  width:100%;
+  margin-top:8px;
 }
 
 .zone-noise-progress-header{
@@ -545,13 +536,20 @@ li.task{
 }
 .task-inner{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
+  flex-direction:column;
+  align-items:flex-start;
   padding:12px 16px;
   background:transparent;
   transition:transform .2s;
+  width:100%;
 }
-.left{display:flex;align-items:center;gap:10px}
+.left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  width:100%;
+}
 .done .txt{text-decoration:line-through;color:#9aa}
 .creator{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .left input[type="checkbox"]{transform:scale(1.25)}
@@ -677,6 +675,7 @@ th{
           <span class="hero-weekly" data-hero="weekly-avg">TB tuần: --</span>
         </div>
         <div class="hero-progress">
+          <div class="hero-progress-label" data-hero="xp-label">0 / 0 E</div>
           <div class="hero-progress-bar">
             <div class="hero-progress-fill" data-hero="xp-fill"></div>
           </div>
@@ -889,6 +888,7 @@ const heroRefs = heroEl ? {
   level: heroEl.querySelector('[data-hero="level"]'),
   xp: heroEl.querySelector('[data-hero="xp"]'),
   weeklyAvg: heroEl.querySelector('[data-hero="weekly-avg"]'),
+  xpLabel: heroEl.querySelector('[data-hero="xp-label"]'),
   xpFill: heroEl.querySelector('[data-hero="xp-fill"]')
 } : {};
 
@@ -1163,12 +1163,9 @@ function renderZoneETaskProgress(task, zoneEStore){
       : `${streakValue}`;
 
   return `
-    <div class="zone-e-progress">
-      <div class="zone-e-progress-header">
-        <span class="zone-e-progress-label">${task.text}</span>
-      </div>
-      <div class="zone-e-progress-bar" aria-label="Tiến độ ${progressLabel}">
-        <div class="zone-e-progress-fill" style="width:${widthPercent}%"></div>
+    <div class="task-progress" aria-label="Tiến độ ${progressLabel}">
+      <div class="task-progress-bar">
+        <div class="task-progress-fill" style="width:${widthPercent}%"></div>
       </div>
     </div>
   `;
@@ -1521,6 +1518,9 @@ function renderHero(){
   }
   if(heroRefs.xp){
     heroRefs.xp.textContent = `${xp} E`;
+  }
+  if(heroRefs.xpLabel){
+    heroRefs.xpLabel.textContent = need ? `${xp} / ${need} E` : `${xp} E`;
   }
   if(heroRefs.weeklyAvg){
     if(weeklyAvgGain === null){
