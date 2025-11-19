@@ -13,6 +13,51 @@
 <meta name="theme-color" content="#8b7cff">
 <title data-app="document-title">Mori Quest</title>
 <style>
+	/* --- CẬP NHẬT CSS MỚI --- */
+
+/* Chỉnh lại .left để hỗ trợ hiển thị 2 dòng (Tên task trên, Streak dưới) */
+.left {
+  align-items: flex-start !important; /* Căn lề trên để checkbox thẳng hàng với dòng 1 */
+}
+
+/* Group bao quanh Text + Badges + Streak */
+.task-info-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1; /* Chiếm hết khoảng trống còn lại */
+}
+
+/* Dòng trên: Tên task + Badge điểm */
+.task-top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+
+/* Dòng dưới: Hiển thị Streak */
+.task-streak-line {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Màu sắc cho Streak */
+.streak-tag {
+  color: #d97706; /* Màu vàng cam đậm */
+  background: rgba(251, 191, 36, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.streak-tag.danger {
+  color: #dc2626; /* Màu đỏ cho Noise cao */
+  background: rgba(248, 113, 113, 0.15);
+}
 :root{
   --ink:#1b1e2e;
   --muted:#7d82a8;
@@ -2802,7 +2847,7 @@ function buildTabsBar(active){
   });
 }
 
-/* TASKS */
+/* TASKS - Đã sửa: Bỏ mô tả Zone, Hiện Streak dưới từng Task */
 async function viewTasks(){
   spawnRecurringIfNeeded();
 
@@ -2825,7 +2870,6 @@ async function viewTasks(){
     zones = [...zones, restored];
     setZones(zones);
     priorityZone = restored;
-    alert('Không tìm thấy Zone Quan trọng, hệ thống đã tạo mới để bạn tiếp tục.');
   }
 
   const groups = zones.map(z=>{
@@ -2877,16 +2921,49 @@ async function viewTasks(){
           </div>
         </li>`;
 
+      // --- LOGIC RENDER LIST VỚI STREAK BÊN DƯỚI ---
       const listHtml = g.list.length
         ? g.list.map(t=>{
+            // Tính toán Streak riêng cho task này
+            let streakHtml = '';
+            if(t.kind === 'recurring'){
+                let streak = 0;
+                let isNoise = false;
+                const key = getNoiseTaskKey(t);
+                
+                if(z.kind === 'e' && key && zoneEStore[key]){
+                    streak = parseNoiseStreak(zoneEStore[key].streak);
+                } else if (z.kind === 'noise' && key && noiseStore[key]){
+                    streak = parseNoiseStreak(noiseStore[key].streak);
+                    isNoise = true;
+                }
+
+                if(streak > 0){
+                    const icon = isNoise ? '💀' : '🔥';
+                    const dangerClass = isNoise && streak >= 5 ? 'danger' : '';
+                    streakHtml = `
+                      <div class="task-streak-line">
+                        <span class="streak-tag ${dangerClass}">${icon} ${streak} ngày liên tiếp</span>
+                      </div>
+                    `;
+                }
+            }
+
             return `
               <li class="task ${t.done?'done':''}" data-id="${t.id}" data-kind="${t.kind||'single'}">
                 <div class="task-inner">
                   <div class="left">
-                    <input type="checkbox" data-id="${t.id}" ${t.done?'checked':''}>
-                    <span class="txt">${t.text}</span>
-                    ${renderTaskKindBadge(t, z)}
-                    ${renderTaskPoints(t.points, t.aiReason, getTaskPointExtras(t, z.kind, pointExtraStores))}
+                    <input type="checkbox" data-id="${t.id}" ${t.done?'checked':''} style="margin-top: 4px;">
+                    
+                    <div class="task-info-group">
+                        <div class="task-top-line">
+                            <span class="txt">${t.text}</span>
+                            ${renderTaskKindBadge(t, z)}
+                            ${renderTaskPoints(t.points, t.aiReason, getTaskPointExtras(t, z.kind, pointExtraStores))}
+                        </div>
+                        ${streakHtml} 
+                    </div>
+
                   </div>
                 </div>
                 <button class="del-btn" data-id="${t.id}">×</button>
@@ -2894,47 +2971,23 @@ async function viewTasks(){
             `;
           }).join('')
         : emptyStateHtml;
-
-      let streakInfoHtml = '';
-      if(z.kind === 'noise' || z.kind === 'e'){
-        const targetStore = z.kind === 'noise' ? noiseStore : zoneEStore;
-        const streakCount = g.list
-          .filter(task => task.kind === 'recurring')
-          .reduce((count, task) => {
-            const key = getNoiseTaskKey(task);
-            if(!key || !targetStore[key]) return count;
-            const streakValue = parseNoiseStreak(targetStore[key].streak);
-            return streakValue > 0 ? count + 1 : count;
-          }, 0);
-        streakInfoHtml = `<div class="muted">Streak: ${streakCount} nhiệm vụ</div>`;
-      }
-
-      const zoneHeaderNote = (() => {
-        switch(z.kind){
-          case 'e':
-            return `Streak > ${ZONE_E_CROWN_THRESHOLD} sẽ cộng thêm +1 E (crown).`;
-          case 'noise':
-            return `Penalty tăng dần; skull ở ${NOISE_SKULL_THRESHOLD}, phạt bổ sung tại ${NOISE_EXTRA_PENALTY_THRESHOLD}.`;
-          default:
-            return 'Không áp dụng streak.';
-        }
-      })();
+      
+      // --- ĐÃ XÓA PHẦN ZONE NOTE VÀ STREAK SUMMARY ---
 
       return `
       <section class="zone">
         <header class="${headerClass}" style="${headerStyle}">
           <div><b>${z.name}</b> <span class="badge">${g.kindLabel}</span></div>
-          <div class="muted zone-note">${zoneHeaderNote}</div>
           <div class="badge">${g.progressText}</div>
         </header>
         <ul>
           ${listHtml}
         </ul>
-        ${streakInfoHtml}
       </section>`;
     }).join('')}
   `;
 
+  // --- Phần gán sự kiện (không đổi) ---
   const inp = document.getElementById('taskText');
   const sel = document.getElementById('taskZone');
 
