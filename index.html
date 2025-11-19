@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="icon" type="image/png" sizes="192x192" href="image/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="image/icon-180.png">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+<meta name="theme-color" content="#8b7cff">
 <title data-app="document-title">Mori Quest</title>
 <style>
 :root{
@@ -475,15 +475,10 @@ li.task{
   background:transparent;
   transition:transform .2s;
 }
-/* Updated .left for vertical stacking */
-.left{
-    display:flex;
-    align-items:flex-start; /* Align checkbox top */
-    gap:10px;
-}
+.left{display:flex;align-items:flex-start;gap:10px}
 .done .txt{text-decoration:line-through;color:#9aa}
 .creator{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.left input[type="checkbox"]{transform:scale(1.25); margin-top: 4px;}
+.left input[type="checkbox"]{transform:scale(1.25);margin-top:4px;}
 
 .del-btn{
   position:absolute;
@@ -613,7 +608,7 @@ th{
     background: rgba(139, 92, 246, 0.15);
 }
 
-@media (max-width:768px){
+  @media (max-width:768px){
     .row{grid-template-columns:1fr}
     .creator{flex-direction:column}
     h1 .app-title{font-size:20px}
@@ -667,7 +662,7 @@ th{
 const APP_NAME = 'Mori Quest';
 
 const CONFIG = {
-  VERSION:'2.0',
+  VERSION:'3.1',
   SETTINGS_PASS:'1000',
   HERO_LEVELS:[
     {
@@ -690,7 +685,7 @@ const CONFIG = {
   ]
 };
 
-// Dùng link RAW để ảnh hiển thị trong CSS
+// Backgrounds
 const RAW_APP_BG = "https://raw.githubusercontent.com/PuongLee269/HelloWorld/cc1ea4b1d90dab277ff5138dc9eb9e928986d9ef/image/ChatGPT%20Image%2022_24_20%2031%20thg%2010%2C%202025.png";
 const RAW_LEVEL_BG = "https://raw.githubusercontent.com/PuongLee269/HelloWorld/747e7bfebad622025035376e42939a217dde236b/image/ChatGPT%20Image%2016_04_12%2028%20thg%2010%2C%202025.png";
 
@@ -733,23 +728,29 @@ const LS = {
   ZONE_E_BONUS_DAY:'tq_zone_e_bonus_day',
   NOISE_STREAKS:'tq_noise_streaks',
   THEME:'tq_theme',
-  ZONE_E_STREAKS:'tq_zone_e_streaks', // Note: Now used for leveling logic too
+  ZONE_E_STREAKS:'tq_zone_e_streaks',
   NOTES:'tq_notes'
 };
 
 function normalizeArchiveText(raw){
   const text = String(raw || '').trim();
   if(!text) return '';
-  return text.normalize ? text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ') : text;
+  const normalized = typeof text.normalize === 'function'
+    ? text.normalize('NFKC')
+    : text;
+  return normalized.toLowerCase().replace(/\s+/g, ' ');
 }
+
 function normalizeArchiveEntry(raw){
   let text = '';
   if(typeof raw === 'string') text = raw;
   else if(raw && typeof raw === 'object') text = raw.text != null ? raw.text : '';
   const clean = String(text || '').trim();
-  if(!clean) return null;
+  const key = normalizeArchiveText(clean);
+  if(!key) return null;
   return { text: clean };
 }
+
 function getArchive(){
   const raw = load(LS.ARCHIVE, []);
   if(!Array.isArray(raw)) return [];
@@ -765,6 +766,7 @@ function getArchive(){
   }
   return result;
 }
+
 function setArchive(list){
   if(!Array.isArray(list)) list = [];
   const seen = new Set();
@@ -788,16 +790,13 @@ const ZONE_KIND_LABELS = {
 };
 const ZONE_KIND_ORDER = ['e','priority','noise','regular'];
 const DEFAULT_ZONES = ZONE_KIND_ORDER.map((kind)=>({
-  name: ZONE_KIND_LABELS[kind],
-  kind,
-  bg:''
+  name: ZONE_KIND_LABELS[kind], kind, bg:''
 }));
 const DAILY_ZONE_KINDS = new Set(['e','noise']);
 const ARCHIVE_ZONE_KINDS = new Set(['priority','regular']);
-let lbTimer = null;
 
 /* ==============================
-   HERO ELEMENTS
+   HERO & LEVELS
 ============================== */
 const heroEl = document.getElementById('hero');
 const heroRefs = heroEl ? {
@@ -840,34 +839,54 @@ function calcWeeklyAverageEGain(profile){
     total: calcTotalE(currentProfile && currentProfile.level, currentProfile && currentProfile.xp)
   });
   series.sort((a, b) => a.ts - b.ts);
+  if(series.length < 7) return null;
   let totalGain = 0;
-  for(let i = 1; i < series.length; i++) totalGain += series[i].total - series[i - 1].total;
+  for(let i = 1; i < series.length; i++){
+    totalGain += series[i].total - series[i - 1].total;
+  }
   return totalGain / 7;
 }
 
 /* ==============================
-   GENERIC HELPERS
+   HELPERS
 ============================== */
 function load(key, def){ try{ return JSON.parse(localStorage.getItem(key)) ?? def }catch{ return def } }
 function save(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
+
 function getNotes(){ return localStorage.getItem(LS.NOTES) || ''; }
 function saveNotes(text){
   const content = String(text || '');
   if(content) localStorage.setItem(LS.NOTES, content);
   else localStorage.removeItem(LS.NOTES);
 }
+
 function getSavedThemeBackgrounds(){
   const raw = load(LS.THEME, {});
-  return { appBgUrl: raw?.appBgUrl || '', heroBgUrl: raw?.heroBgUrl || '' };
+  const appBgUrl = raw && typeof raw.appBgUrl === 'string' ? raw.appBgUrl : '';
+  const heroBgUrl = raw && typeof raw.heroBgUrl === 'string' ? raw.heroBgUrl : '';
+  return { appBgUrl, heroBgUrl };
 }
 function updateSavedThemeBackgrounds(partial){
+  partial = partial || {};
   const current = getSavedThemeBackgrounds();
-  const next = Object.assign({}, current, partial);
+  const next = Object.assign({}, current);
+  if('appBgUrl' in partial) next.appBgUrl = partial.appBgUrl || '';
+  if('heroBgUrl' in partial) next.heroBgUrl = partial.heroBgUrl || '';
   save(LS.THEME, next);
   return next;
 }
 
-// Zone E / Noise Store Helpers
+// --- COMPLEX ZONE E LOGIC STORE ---
+// { "rec:123": { points: 1, streak: 0, progress: 0, threshold: 5 } }
+function getZoneEStreakStore(){
+  const raw = load(LS.ZONE_E_STREAKS, {});
+  if(!raw || typeof raw !== 'object') return {};
+  return raw;
+}
+function setZoneEStreakStore(store){
+  save(LS.ZONE_E_STREAKS, store);
+}
+
 function getNoiseTaskKey(task){
   if(!task || typeof task !== 'object') return null;
   if(typeof task.recurringId === 'number') return `rec:${task.recurringId}`;
@@ -875,58 +894,42 @@ function getNoiseTaskKey(task){
   return null;
 }
 
-// Modified to store complex Zone E leveling data
-// Structure: { points: 1, streak: 0, progress: 0, threshold: 5 }
-function getZoneEStreakStore(){
-  return load(LS.ZONE_E_STREAKS, {});
-}
-function setZoneEStreakStore(store){
-  save(LS.ZONE_E_STREAKS, store);
-}
-function getNoiseStreakStore(){
-    return load(LS.NOISE_STREAKS, {});
-}
-function setNoiseStreakStore(store){
-    save(LS.NOISE_STREAKS, store);
-}
-
 function generateProfileId(){
   const time = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2,10);
   return `p-${time}-${rand}`;
 }
-function formatSignedNumber(n){ const val = Number(n)||0; return `${val>=0?'+':''}${val}`; }
+function formatSignedNumber(n){
+  const val = Number(n)||0;
+  return `${val>=0?'+':''}${val}`;
+}
 function todayDM(){
   const d=new Date();
-  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}-${mm}`;
 }
 function getLastRealDate(){ return localStorage.getItem(LS.REALDATE) || ''; }
 function setLastRealDate(val){ if(val) localStorage.setItem(LS.REALDATE, val); }
 function lastLevelCfg(){ return LEVELS[LEVELS.length-1]; }
 
 /* ==============================
-   SCORING LOGIC (NO AI)
+   SCORING LOGIC (FIXED)
 ============================== */
-// Hardcoded scoring as requested
 function getTaskPoints(text, zoneKind) {
   let pts = 1;
-  if (zoneKind === 'e') pts = 1;
-  else if (zoneKind === 'priority') pts = 3;
-  else if (zoneKind === 'noise') pts = -1;
-  else pts = 1; // regular
-  
-  // Return object compatible with old structure
+  if(zoneKind === 'e') pts = 1;
+  else if(zoneKind === 'priority') pts = 3;
+  else if(zoneKind === 'noise') pts = -1;
+  else pts = 1;
+
   return {
       points: pts,
-      reason: 'Cố định',
+      reason: 'Điểm cố định',
       category: 'fixed',
       zone: ZONE_KIND_LABELS[zoneKind]
   };
 }
-function normalizeAiScoreForZone(ai, zoneKind) {
-    return ai; // Pass through, no AI normalization needed
-}
-
 
 /* ==============================
    PROFILE
@@ -951,7 +954,8 @@ function addXP(delta){
     const need = cfg.need || 0;
     if(need>0 && p.xp>=need){
       p.xp -= need;
-      p.level = Math.min(lastLevelCfg().lvl, p.level+1);
+      const maxLvl = lastLevelCfg().lvl;
+      p.level = Math.min(maxLvl, p.level+1);
     } else break;
   }
   save(LS.PROFILE,p);
@@ -974,42 +978,53 @@ function ensureName(){
 /* ==============================
    RENDER HERO
 ============================== */
-function getBackgroundTheme(){
-  const base = CONFIG.BACKGROUND_THEME || {};
-  const saved = getSavedThemeBackgrounds();
-  const theme = Object.assign({}, base);
-  if(saved.appBgUrl) theme.appDefaultBgUrl = saved.appBgUrl;
-  theme.customHeroBgUrl = saved.heroBgUrl || '';
-  return theme;
-}
 function pickHeroBackgroundThemeFor(level){
   const theme = getBackgroundTheme();
-  const list = theme.heroByLevel || [];
+  const list = Array.isArray(theme.heroByLevel) ? theme.heroByLevel : [];
+  const fallback = list[list.length-1] || null;
   for(const item of list){
-    if(level>=item.minLevel && (!item.maxLevel || level<=item.maxLevel)) return item;
+     if(level>=item.minLevel && (!item.maxLevel || level<=item.maxLevel)) return item;
   }
-  return list[list.length-1];
+  return fallback;
 }
+
+function applyBackgroundToElement(el, value, fallbackValue, options){
+  if(!el) return;
+  const final = value || fallbackValue || '';
+  el.style.backgroundImage = final;
+  if(options.size) el.style.backgroundSize = options.size;
+  if(options.position) el.style.backgroundPosition = options.position;
+  if(options.attachment) el.style.backgroundAttachment = options.attachment;
+}
+
 function renderHero(){
   if(!heroEl) return;
   const profile = getProfile();
   const {level,xp,need} = getLevelInfo();
-  const theme = getBackgroundTheme();
-  const preset = pickHeroBackgroundThemeFor(level) || {};
-  
-  const heroBg = theme.customHeroBgUrl || preset.heroBgUrl || '';
-  const appBg = theme.appDefaultBgUrl || preset.appBgUrl || '';
-  
-  heroEl.style.backgroundImage = heroBg;
-  document.body.style.backgroundImage = appBg;
-  
+  const backgroundTheme = getBackgroundTheme();
+  const heroThemePreset = pickHeroBackgroundThemeFor(level) || {};
+  const name = (profile.name || '').trim() || 'Player';
   const pct = need ? Math.min(100, Math.round(xp/need*100)) : 100;
-  const weeklyAvg = calcWeeklyAverageEGain(profile);
+  const weeklyAvgGain = calcWeeklyAverageEGain(profile);
+
+  const customHeroBg = backgroundTheme.customHeroBgUrl || '';
+  const customAppBg = backgroundTheme.customAppBgUrl || '';
+  const defaultHeroBg = 'linear-gradient(135deg,#8b7cff 0%,#b09bff 100%)';
+  const heroBgValue = customHeroBg || heroThemePreset.heroBgUrl || '';
   
-  if(heroRefs.name) heroRefs.name.textContent = profile.name || 'Player';
+  applyBackgroundToElement(heroEl, heroBgValue, defaultHeroBg, { size:'cover', position:'center' });
+
+  const appBgFallback = backgroundTheme.appDefaultBgUrl || '';
+  const appBgValue = customAppBg || heroThemePreset.appBgUrl || '';
+  applyBackgroundToElement(document.body, appBgValue, appBgFallback, { size:'cover', attachment:'fixed' });
+
+  if(heroRefs.name) heroRefs.name.textContent = name;
   if(heroRefs.level) heroRefs.level.textContent = `Level ${level}`;
   if(heroRefs.xp) heroRefs.xp.textContent = `${xp} E`;
-  if(heroRefs.weeklyAvg) heroRefs.weeklyAvg.textContent = weeklyAvg !== null ? `TB tuần: ${formatSignedNumber(weeklyAvg.toFixed(1))} E/ngày` : 'TB tuần: --';
+  if(heroRefs.weeklyAvg){
+    if(weeklyAvgGain === null) heroRefs.weeklyAvg.textContent = 'TB tuần: --';
+    else heroRefs.weeklyAvg.textContent = `TB tuần: ${formatSignedNumber(weeklyAvgGain.toFixed(1))} E/ngày`;
+  }
   if(heroRefs.xpLabel) heroRefs.xpLabel.textContent = need ? `${xp} / ${need} E tới level tiếp theo` : `${xp} E (tối đa)`;
   if(heroRefs.xpFill) heroRefs.xpFill.style.width = `${pct}%`;
 }
@@ -1026,10 +1041,20 @@ function pushHistSnapshot(){
   if(h.length>60) h.splice(0, h.length-60);
   setHist(h);
 }
-function getDay(){ return Number(localStorage.getItem(LS.DAY)||1); }
-function nextDay(){ localStorage.setItem(LS.DAY, getDay()+1); }
+function getDay(){
+  let d=Number(localStorage.getItem(LS.DAY)||0);
+  if(!d){ d=1; localStorage.setItem(LS.DAY,d); }
+  return d;
+}
+function nextDay(){
+  const d=getDay()+1;
+  localStorage.setItem(LS.DAY,d);
+  return d;
+}
+function loadFlags(){ return load(LS.BONUS,{}); }
+function saveFlags(f){ save(LS.BONUS,f); }
 function clearFlagsFor(day){
-  const f=load(LS.BONUS,{}); delete f[day]; save(LS.BONUS,f);
+  const f=loadFlags(); delete f[day]; saveFlags(f);
 }
 
 /* ==============================
@@ -1037,90 +1062,109 @@ function clearFlagsFor(day){
 ============================== */
 function getZones(){
   let zones = load(LS.ZONES, []);
-  if(!zones.length) zones = DEFAULT_ZONES.map((z,i)=>({id:Date.now()+i, ...z}));
+  if(!zones.length){
+      zones = DEFAULT_ZONES.map((z, idx)=>({
+      id: Date.now() + idx,
+      name: z.name,
+      kind: z.kind,
+      bg: z.bg
+    }));
+    save(LS.ZONES, zones);
+  }
   return zones;
 }
 function setZones(z){ save(LS.ZONES,z) }
-function getRecurring(){ return load(LS.RECUR,[]) }
-function saveRecurring(r){ save(LS.RECUR,r) }
+function updZone(id,patch){
+  const zones = getZones().map(z=>z.id===id?{...z,...patch}:z);
+  setZones(zones);
+}
+function delZone(id){
+  setZones(getZones().filter(z=>z.id!==id));
+}
 
 async function addRecurring(r){
-  const rec = {...r, id: Date.now() + Math.floor(Math.random()*1000)};
-  // Fixed scoring logic
-  const z = getZones().find(z => z.id == rec.zoneId);
-  const pts = getTaskPoints(rec.text, z ? z.kind : 'regular');
+  const rec = {...r};
+  rec.id = Date.now() + Math.floor(Math.random()*1000);
+  
+  const zones = getZones();
+  const z = zones.find(z => z.id == rec.zoneId);
+  const zoneKind = z ? z.kind : 'regular';
+  
+  const pts = getTaskPoints(rec.text, zoneKind);
   rec.points = pts.points;
   
   const list = [...getRecurring(), rec];
-  saveRecurring(list);
+  save(LS.RECUR, list);
   return rec;
 }
+
 function delRecurring(id){
-  saveRecurring(getRecurring().filter(r=>r.id!==id));
+  save(LS.RECUR,getRecurring().filter(r=>r.id!==id));
 }
-
+function getRecurring(){ return load(LS.RECUR,[]) }
 function getTasks(){ return load(LS.TASKS, []) }
-function setTasks(t){ save(LS.TASKS, t) }
+function setTasks(a){ save(LS.TASKS,a) }
 
-function isTaskActiveToday(t){ return t.kind==='recurring' || !t.done; }
-function doesTaskOccupyCapacity(t){ return true; }
-function getZoneActiveTasks(tasks, zoneId){ return tasks.filter(t=>t.zoneId==zoneId && doesTaskOccupyCapacity(t)); }
+function isTaskActiveToday(t){
+  if(!t) return false;
+  if(t.kind==='recurring') return true;
+  return !t.done;
+}
+function doesTaskOccupyCapacity(task){ return !!task; }
+function getZoneActiveTasks(tasks, zoneId){
+  return tasks.filter(t=>t.zoneId==zoneId && doesTaskOccupyCapacity(t));
+}
 
 function renderTaskKindBadge(t, z){
-  const cls = t.kind==='recurring' ? (z.kind==='noise'?'task-kind recurring negative':'task-kind recurring') : 'task-kind single';
-  const txt = t.kind==='recurring' ? (z.kind==='noise'?'Hằng ngày (-)':'Hằng ngày') : 'Một lần';
-  return `<span class="${cls}">${txt}</span>`;
+  if(t.kind==='recurring') return `<span class="task-kind recurring">Hằng ngày</span>`;
+  return `<span class="task-kind single">Một lần</span>`;
 }
 
-function renderTaskPoints(points, reason, options){
-   const sign = points >= 0 ? '+' : '';
-   const cls = points >= 0 ? 'positive' : 'negative';
-   const icon = options && options.icon ? `<span class="task-point-icon">${options.icon}</span>` : '';
-   return `<span class="task-points ${cls}" title="${options?.tooltip||''}">${icon}${sign}${points}</span>`;
+function renderTaskPoints(points, reasonText, options) {
+  const opts = options || {};
+  const sign = points >= 0 ? '+' : '';
+  const className = points >= 0 ? 'positive' : 'negative';
+  const icon = opts.icon ? `<span class="task-point-icon" aria-hidden="true">${opts.icon}</span>` : '';
+  return `<span class="task-points ${className}" title="${opts.tooltip||''}">${icon}${sign}${points}</span>`;
 }
 
 function getTaskPointExtras(task, zoneKind, stores){
-    if(!task || !stores) return {};
-    const noiseStore = stores.noise || {};
-    const zoneEStore = stores.zoneE || {};
-    
-    if (zoneKind === 'e' && task.kind === 'recurring') {
-        const key = getNoiseTaskKey(task);
-        if (key && zoneEStore[key]) {
-            const d = zoneEStore[key];
-            const isCrown = d.points >= 7;
-            return {
-                icon: isCrown ? '👑' : '',
-                tooltip: `Streak: ${d.streak}, Progress: ${d.progress}/${d.threshold}`
-            };
-        }
+  if(!task || !stores) return {};
+  const zoneEStore = stores.zoneE || {};
+
+  if(zoneKind === 'e' && task.kind === 'recurring'){
+    const key = getNoiseTaskKey(task);
+    if(key && zoneEStore[key]){
+      const d = zoneEStore[key];
+      const isCrown = d.points >= 7;
+      return {
+        icon: isCrown ? '👑' : '',
+        tooltip: `Streak: ${d.streak}, Progress: ${d.progress}/${d.threshold} to +1`
+      };
     }
-    if (zoneKind === 'noise' && task.kind === 'recurring') {
-        // Keep logic simple for noise visuals for now, handled in point calc
-        return { icon: '💀' };
-    }
-    return {};
+  }
+  if(zoneKind === 'noise' && task.points < -1){
+      return { icon: '💀', tooltip: 'Phạt nặng' };
+  }
+  return {};
 }
 
-/* ==============================
-   ARCHIVE
-============================== */
 function isArchiveEligibleKind(kind){ return ARCHIVE_ZONE_KINDS.has(kind); }
 function archiveTaskCompletion(task, zone){
   if(!task || !zone || !isArchiveEligibleKind(zone.kind)) return;
   const text = String(task.text || '').trim();
   const current = getArchive();
   if(!current.some(i => normalizeArchiveText(i.text) === normalizeArchiveText(text))){
-     setArchive([...current, {text}]);
+      setArchive([...current, {text}]);
   }
 }
-function removeTaskFromArchive(text){
-  const key = normalizeArchiveText(text);
-  setArchive(getArchive().filter(i => normalizeArchiveText(i.text) !== key));
+function removeTaskFromArchive(taskText){
+  const key = normalizeArchiveText(taskText);
+  setArchive(getArchive().filter(item => normalizeArchiveText(item.text) !== key));
 }
 
 /* ==============================
-   DAY ROLLOVER LOGIC (CRITICAL)
+   DAY ROLLOVER & SPAWN
 ============================== */
 function spawnRecurringIfNeeded(){
   const mark = Number(localStorage.getItem(LS.SPAWN)||0);
@@ -1130,163 +1174,450 @@ function spawnRecurringIfNeeded(){
   const recs = getRecurring();
   const zones = getZones();
   const tasks = getTasks();
-  const zoneEMap = getZoneEStreakStore(); // This now holds level info
-  const existingIds = new Set(tasks.filter(t=>t.kind==='recurring').map(t=>t.recurringId));
+  const zoneEMap = getZoneEStreakStore();
+  
+  const existingRecurring = new Set(
+    tasks
+      .filter(t=>t.kind==='recurring' && typeof t.recurringId==='number')
+      .map(t=>t.recurringId)
+  );
 
-  recs.forEach(r => {
-    if(r.type==='weekly' && (!r.days || !r.days.includes(weekday))) return;
-    if(existingIds.has(r.id)) return;
-
+  for(const r of recs){
+    const match = r.type==='daily' || (r.type==='weekly' && Array.isArray(r.days)&&r.days.includes(weekday));
+    if(!match) continue;
+    if(existingRecurring.has(r.id)) continue;
+    
     const z = zones.find(z=>z.id==r.zoneId);
-    if(!z) return;
+    if(!z) continue;
 
     // Determine points for new spawn
     let pts = Number(r.points);
     // For Zone E, pull current level points
-    if(z.kind === 'e') {
-        const key = `rec:${r.id}`;
-        if(zoneEMap[key]) pts = zoneEMap[key].points;
-        else pts = 1; // default
+    if (z.kind === 'e') {
+         const d = zoneEMap[`rec:${r.id}`];
+         if (d) pts = d.points;
+         else pts = 1;
     }
     
-    tasks.push({
-        id: Date.now() + Math.random(),
-        text: r.text,
-        zoneId: r.zoneId,
-        done: false,
-        kind: 'recurring',
-        recurringId: r.id,
-        points: pts,
-        aiReason: r.reason
-    });
-  });
+    const newTask = {
+      id: Date.now() + Math.random(),
+      text: r.text,
+      zoneId: r.zoneId,
+      done: false,
+      kind: 'recurring',
+      recurringId: r.id,
+      points: pts
+    };
+    tasks.push(newTask);
+  }
 
   setTasks(tasks);
   localStorage.setItem(LS.SPAWN, String(getDay()));
 }
 
-function performDayRollover(){
-  const zones = getZones();
-  const tasks = getTasks();
-  const recs = getRecurring();
-  const zoneEMap = getZoneEStreakStore();
-  const nextZoneEMap = {...zoneEMap};
-  const zoneKindMap = new Map(zones.map(z => [z.id, z.kind]));
+function performDayRollover(opts={}){
+  const auto=!!opts.auto;
+  if(isRolloverRunning) return false;
+  isRolloverRunning=true;
+  try {
+    const zones = getZones();
+    const tasks = getTasks();
+    const recs = getRecurring();
+    const zoneEMap = getZoneEStreakStore();
+    const nextZoneEMap = {...zoneEMap};
+    const zoneKindMap = new Map(zones.map(z => [z.id, z.kind]));
 
-  // 1. Penalty -7E
-  addXP(-7);
+    // 1. Penalty -7E
+    addXP(-7);
 
-  // 2. Daily Zone E Bonus (>3 tasks)
-  const todayTasks = tasks.filter(t => t.done);
-  const countE = todayTasks.filter(t => zoneKindMap.get(t.zoneId) === 'e').length;
-  if(countE > 3) addXP(Math.min(5, Math.max(3, countE)));
+    // 2. Daily Zone E Bonus (>3 tasks)
+    const todayTasks = tasks.filter(t => t.done);
+    const countE = todayTasks.filter(t => zoneKindMap.get(t.zoneId) === 'e').length;
+    if(countE > 3) {
+        addXP(Math.min(5, Math.max(3, countE)));
+    }
 
-  // 3. Advanced Zone E Leveling Logic
-  // Iterate all Zone E recurring definitions
-  recs.forEach(r => {
-      if(zoneKindMap.get(r.zoneId) !== 'e') return;
-      const key = `rec:${r.id}`;
-      // Initialize if missing
-      if(!nextZoneEMap[key]) nextZoneEMap[key] = { points: 1, streak: 0, progress: 0, threshold: 5 };
-      
-      const d = nextZoneEMap[key];
-      // Check if performed today
-      const performed = todayTasks.some(t => t.recurringId === r.id);
+    // 3. Advanced Zone E Leveling Logic
+    recs.forEach(r => {
+        if(zoneKindMap.get(r.zoneId) !== 'e') return;
+        const key = `rec:${r.id}`;
+        // Initialize if missing
+        if(!nextZoneEMap[key]) nextZoneEMap[key] = { points: 1, streak: 0, progress: 0, threshold: 5 };
+        
+        const d = nextZoneEMap[key];
+        // Check if performed today
+        const performed = todayTasks.some(t => t.recurringId === r.id);
 
-      if(performed) {
-          d.streak++;
-          // Level up logic only if < 7 (Crown)
-          if(d.points < 7) {
-              d.progress++;
-              if(d.progress >= d.threshold) {
-                  d.points++; // Level up
-                  d.progress = 0;
-                  d.threshold = Math.ceil(d.threshold * 1.2); // Harder next time
-              }
-          }
-      } else {
-          // Missed day logic
-          if(d.points >= 7) {
-              // Has crown -> drop 1 level
-              d.points--;
-              d.progress = 0;
-              d.threshold = Math.floor(d.threshold / 1.2) || 5; // Approximate step down
-          } else {
-              // No crown -> reset to 1
-              d.points = 1;
-              d.progress = 0;
-              d.threshold = 5;
-              d.streak = 0;
-          }
+        if(performed) {
+            d.streak++;
+            // Level up logic only if < 7 (Crown)
+            if(d.points < 7) {
+                d.progress++;
+                if(d.progress >= d.threshold) {
+                    d.points++; // Level up
+                    d.progress = 0;
+                    d.threshold = Math.ceil(d.threshold * 1.2); // Harder next time
+                }
+            }
+        } else {
+            // Missed day logic
+            if(d.points >= 7) {
+                // Has crown -> drop 1 level
+                d.points--;
+                d.progress = 0;
+                d.threshold = Math.floor(d.threshold / 1.2) || 5; // Approximate step down
+            } else {
+                // No crown -> reset to 1
+                d.points = 1;
+                d.progress = 0;
+                d.threshold = 5;
+                d.streak = 0;
+            }
+        }
+    });
+    setZoneEStreakStore(nextZoneEMap);
+
+    // 4. Zone Noise Logic (Accumulate penalty if done)
+    recs.forEach(r => {
+        if(zoneKindMap.get(r.zoneId) !== 'noise') return;
+        const performed = todayTasks.some(t => t.recurringId === r.id);
+        if(performed) {
+            // Increase penalty (more negative)
+            r.points = (r.points || -1) - 1; 
+        }
+    });
+    save(LS.RECUR, recs);
+
+    // 5. Cleanup
+    pushHistSnapshot();
+    clearFlagsFor(getDay());
+    nextDay();
+    
+    // Remove done recurring tasks, keep undone single tasks
+    const remaining = tasks.filter(t => t.kind === 'single' && !t.done);
+    setTasks(remaining);
+    
+    localStorage.removeItem(LS.SPAWN);
+    spawnRecurringIfNeeded();
+    setLastRealDate(todayDM());
+    
+    renderHero();
+    if(!auto) {
+        render('settings');
+        alert('Đã qua ngày mới! Bạn bị trừ 7 E phí sinh hoạt.');
+    }
+    return true;
+  } finally {
+    isRolloverRunning=false;
+  }
+}
+
+function handleEndDay(){
+  performDayRollover({auto:false});
+}
+
+function handleResetPoints(){
+  if(confirm('Reset Level=1 & E=0?')){
+    resetPoints();
+    alert('Đã reset điểm.');
+    render('settings');
+  }
+}
+
+function syncDayWithCalendar(){
+  const today = todayDM();
+  const lastReal = getLastRealDate();
+  if(!lastReal){
+    setLastRealDate(today);
+    return false;
+  }
+  if(lastReal===today){
+    return false;
+  }
+  return performDayRollover({auto:true});
+}
+
+function startDaySyncMonitoring(){
+  if(daySyncTimer!==null) return;
+  daySyncTimer=setInterval(()=>{
+    if(syncDayWithCalendar()){
+      render('tasks');
+    }
+  }, 60*1000);
+  if(!daySyncVisHandler){
+    daySyncVisHandler=()=>{
+      if(!document.hidden && syncDayWithCalendar()){
+        render('tasks');
       }
-  });
-  setZoneEStreakStore(nextZoneEMap);
+    };
+    document.addEventListener('visibilitychange', daySyncVisHandler);
+  }
+}
 
-  // 4. Zone Noise Logic (Accumulate penalty if done)
-  // Requirement: If done, points become more negative? The prompt implies -1 is base.
-  // The user said: "Noise only delete at -1". "Can't delete at -2". 
-  // We assume doing it *increases* penalty (makes it -2, -3). 
-  // Let's check if any Noise task was done and decrement its recurring base points.
-  recs.forEach(r => {
-      if(zoneKindMap.get(r.zoneId) !== 'noise') return;
-      const performed = todayTasks.some(t => t.recurringId === r.id);
-      if(performed) {
-          // If done, subtract 1 from points (e.g. -1 -> -2)
-          r.points = (r.points || -1) - 1; 
+function stopDaySyncMonitoring(){
+  if(daySyncTimer!==null){
+    clearInterval(daySyncTimer);
+    daySyncTimer=null;
+  }
+  if(daySyncVisHandler){
+    document.removeEventListener('visibilitychange', daySyncVisHandler);
+    daySyncVisHandler=null;
+  }
+}
+
+/* ==============================
+   ORIGINAL CHART DRAWER
+============================== */
+function drawChart(canvasId, values){
+  const cvs = document.getElementById(canvasId);
+  if(!cvs) return;
+  const ctx = cvs.getContext('2d');
+
+  const ratio = window.devicePixelRatio || 1;
+  const displayWidth = Math.floor(cvs.clientWidth || cvs.offsetWidth || 300);
+  const displayHeight = Math.floor(cvs.clientHeight || cvs.offsetHeight || 160);
+  if(displayWidth === 0 || displayHeight === 0) return;
+
+  cvs.width = Math.round(displayWidth * ratio);
+  cvs.height = Math.round(displayHeight * ratio);
+
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(ratio, ratio);
+  ctx.clearRect(0,0,displayWidth,displayHeight);
+  ctx.lineJoin = ctx.lineCap = 'round';
+
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  ctx.fillRect(0,0,displayWidth,displayHeight);
+
+  if(!values || !values.length){
+    ctx.fillStyle="#555";
+    ctx.font="14px system-ui";
+    ctx.textBaseline = 'top';
+    ctx.fillText("Chưa có dữ liệu", 10, 24);
+    return;
+  }
+
+  const minV = Math.min(...values);
+  const maxV = Math.max(...values);
+  const padX = 24, padY = 24;
+  const span = (maxV-minV)||1;
+  const usableW = (displayWidth-2*padX);
+  const usableH = (displayHeight-2*padY);
+
+  const points = values.map((v,i)=>{
+    const ratioX = (values.length===1)?0:(i/(values.length-1));
+    const x = padX + (usableW * ratioX);
+    const y = displayHeight - padY - (usableH * ((v-minV)/span));
+    return {x,y,value:v};
+  });
+
+  // Grid
+  ctx.save();
+  ctx.strokeStyle = 'rgba(27,30,46,0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,6]);
+  for(let i=0;i<=4;i++){
+    const gy = padY + (usableH * (i/4));
+    ctx.beginPath();
+    ctx.moveTo(padX, gy);
+    ctx.lineTo(displayWidth-padX, gy);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Gradient Line
+  const gradLine = ctx.createLinearGradient(padX,0,displayWidth-padX,0);
+  gradLine.addColorStop(0,"#8b7cff");
+  gradLine.addColorStop(1,"#b09bff");
+
+  ctx.beginPath();
+  points.forEach((pt,i)=>i==0?ctx.moveTo(pt.x, pt.y):ctx.lineTo(pt.x, pt.y));
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = gradLine;
+  ctx.shadowColor = 'rgba(139,124,255,0.35)';
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  // Fill
+  ctx.beginPath();
+  points.forEach((pt,i)=>i==0?ctx.moveTo(pt.x, pt.y):ctx.lineTo(pt.x, pt.y));
+  ctx.lineTo(points[points.length-1].x, displayHeight-padY);
+  ctx.lineTo(points[0].x, displayHeight-padY);
+  ctx.closePath();
+  const gradFill = ctx.createLinearGradient(0,padY,0,displayHeight-padY);
+  gradFill.addColorStop(0,'rgba(139,124,255,0.18)');
+  gradFill.addColorStop(1,'rgba(139,124,255,0)');
+  ctx.fillStyle = gradFill;
+  ctx.fill();
+
+  // Dots
+  points.forEach((pt,i)=>{
+    ctx.beginPath();
+    const isLast = i === points.length-1;
+    ctx.arc(pt.x, pt.y, isLast?5:3, 0, Math.PI*2);
+    ctx.fillStyle = isLast?'#ff3425':'#fff';
+    ctx.strokeStyle = isLast?'rgba(255,255,255,0.85)':'rgba(139,124,255,0.6)';
+    ctx.lineWidth = isLast?3:2;
+    ctx.fill();
+    ctx.stroke();
+  });
+}
+
+/* ==============================
+   FULL SWIPE HANDLERS
+============================== */
+function attachSwipeHandlersForTasks(){
+  const rows = [...document.querySelectorAll('li.task')];
+  rows.forEach(li=>{
+    const inner = li.querySelector('.task-inner');
+    const delBtn = li.querySelector('.del-btn');
+    let startX = 0, currentX = 0, isDown = false;
+    let opened = li.classList.contains('show-del');
+    let justSwiped = false;
+    let swipeResetTimer = null;
+    let hasDragged = false;
+    let pendingDragFromDel = false;
+    let pendingStartX = 0;
+
+    function openRow(){
+      li.classList.add('show-del'); li.classList.remove('dragging');
+      inner.style.transform = ''; delBtn.style.transform = ''; opened = true;
+    }
+    function closeRow(){
+      li.classList.remove('show-del'); li.classList.remove('dragging');
+      inner.style.transform = ''; delBtn.style.transform = 'translateX(60px)';
+      opened = false; justSwiped = false;
+    }
+    function applyDrag(dx){
+      let offset = dx; if(offset<-60) offset=-60; if(offset>0) offset=0;
+      inner.style.transform = `translateX(${offset}px)`;
+      delBtn.style.transform = `translateX(${60+offset}px)`;
+    }
+    function startDrag(clientX){
+      isDown = true; hasDragged = false; pendingDragFromDel = false;
+      startX = clientX; currentX = clientX; li.classList.add('dragging');
+      if(opened){ inner.style.transform='translateX(-60px)'; delBtn.style.transform='translateX(0px)'; }
+    }
+    function canStartDrag(target, clientX){
+      if(target.closest('.del-btn')) return true;
+      if(target.closest('input, button, select, textarea, a, label')) return false;
+      if(target.closest('.task-inner') || target.closest('.txt')) return true;
+      const liRect = li.getBoundingClientRect();
+      return clientX >= (liRect.right - 60);
+    }
+    function moveDrag(clientX){
+      if(!isDown) return;
+      currentX = clientX; const dx = currentX - startX;
+      if(opened) applyDrag(-60 + dx); else applyDrag(dx);
+    }
+    function endDrag(){
+      if(!isDown) return;
+      isDown = false; const dx = currentX - startX;
+      let openedViaSwipe = false;
+      if(opened){ if(dx>30) closeRow(); else { openRow(); openedViaSwipe=true; } }
+      else { if(dx<-30) { openRow(); openedViaSwipe=true; } else closeRow(); }
+      if(openedViaSwipe){
+        justSwiped=true;
+        if(swipeResetTimer) clearTimeout(swipeResetTimer);
+        swipeResetTimer=setTimeout(()=>{justSwiped=false;swipeResetTimer=null;},250);
       }
-  });
-  saveRecurring(recs);
+      hasDragged = false;
+    }
 
-  // 5. Cleanup and Next Day
-  pushHistSnapshot();
-  clearFlagsFor(getDay());
-  nextDay();
-  
-  // Remove done recurring tasks, keep undone single tasks
-  const remaining = tasks.filter(t => t.kind === 'single' && !t.done);
-  setTasks(remaining);
-  
-  localStorage.removeItem(LS.SPAWN);
-  spawnRecurringIfNeeded();
-  setLastRealDate(todayDM());
-  
+    // Touch
+    li.addEventListener('touchstart', e=>{
+      const cx = e.touches[0].clientX;
+      if(e.target.closest('.del-btn')){ pendingDragFromDel=true; pendingStartX=cx; return; }
+      pendingDragFromDel=false; pendingStartX=0;
+      if(!canStartDrag(e.target, cx)) return;
+      startDrag(cx);
+    }, {passive:false});
+    li.addEventListener('touchmove', e=>{
+      const cx = e.touches[0].clientX;
+      if(pendingDragFromDel){
+        const dx = cx - pendingStartX;
+        if(Math.abs(dx)>3){ startDrag(pendingStartX); hasDragged=true; moveDrag(cx); e.preventDefault(); }
+        return;
+      }
+      if(!isDown) return;
+      const dx = cx - startX;
+      if(!hasDragged && Math.abs(dx)>3) hasDragged=true;
+      if(hasDragged){ moveDrag(cx); e.preventDefault(); }
+    }, {passive:false});
+    li.addEventListener('touchend', ()=>{
+      if(pendingDragFromDel){ pendingDragFromDel=false; pendingStartX=0; return; }
+      endDrag();
+    });
+    // Mouse
+    li.addEventListener('mousedown', e=>{
+      if(!canStartDrag(e.target, e.clientX)) return;
+      startDrag(e.clientX); e.preventDefault();
+    });
+    li.addEventListener('mousemove', e=>{ if(!isDown) return; moveDrag(e.clientX); });
+    li.addEventListener('mouseup', endDrag);
+    li.addEventListener('mouseleave', ()=>{ if(isDown) endDrag(); });
+    
+    inner.addEventListener('click', e=>{
+      if(li.classList.contains('show-del')){
+        e.preventDefault(); e.stopPropagation();
+        if(!justSwiped) closeRow();
+      }
+    });
+  });
+}
+
+/* ==============================
+   ROUTER
+============================== */
+let currentTab='tasks';
+
+function render(tab){
+  currentTab = tab;
   renderHero();
-  render('settings');
-  alert('Đã qua ngày mới! Bạn bị trừ 7 E phí sinh hoạt.');
+  buildTabsBar(tab);
+
+  if(tab==='tasks'){
+    stopDaySyncMonitoring();
+    syncDayWithCalendar();
+    viewTasks();
+    startDaySyncMonitoring();
+  } else if(tab==='archive'){
+    stopDaySyncMonitoring();
+    viewArchive();
+  } else if(tab==='leaderboard'){
+    stopDaySyncMonitoring();
+    viewLeaderboard();
+  } else if(tab==='stats'){
+    stopDaySyncMonitoring();
+    viewStats();
+  } else if(tab==='notes'){
+    stopDaySyncMonitoring();
+    viewNotes();
+  } else if(tab==='settings'){
+    stopDaySyncMonitoring();
+    if(ensureSettingsAuth()) viewSettings();
+    else render('tasks');
+  } else {
+    render('tasks');
+  }
 }
 
 /* ==============================
    VIEWS
 ============================== */
-const view = document.getElementById('view');
-const tabsBar = document.getElementById('tabsBar');
-let currentTab = 'tasks';
-
-function buildTabsBar(active){
-  tabsBar.innerHTML = [
-    {id:'tasks', label:'Nhiệm vụ', icon:'✅'},
-    {id:'archive', label:'Lưu trữ', icon:'🗂️'},
-    {id:'stats', label:'Biểu đồ', icon:'📈'},
-    {id:'notes', label:'Ghi chú', icon:'📝'},
-    {id:'settings', label:'Settings', icon:'⚙️'}
-  ].map(t=>`
-    <button class="tab-btn ${t.id===active?'active':''}" onclick="render('${t.id}')">
-      ${t.icon}
-    </button>
-  `).join('');
-}
-
-/* TASKS VIEW */
-function viewTasks(){
+async function viewTasks(){
   spawnRecurringIfNeeded();
   let zones=getZones();
   const tasks=getTasks();
   const zoneEMap = getZoneEStreakStore();
+  const dateNowDM = todayDM();
   
-  // Ensure Priority Zone exists
+  // Ensure Priority Zone
   if (!zones.some(z => z.kind === 'priority')) {
-     zones.push({id: Date.now(), name: 'Zone Quan trọng', kind: 'priority', bg: ''});
-     setZones(zones);
+    zones.push({id: Date.now(), name: 'Zone Quan trọng', kind: 'priority', bg: ''});
+    setZones(zones);
   }
 
   const groups = zones.map(z=>{
@@ -1295,110 +1626,101 @@ function viewTasks(){
   });
 
   view.innerHTML = `
-    <div class="top"><span class="pill">Ngày: <b>${todayDM()}</b></span></div>
+    <div class="top">
+      <span class="pill">Ngày: <b>${dateNowDM}</b></span>
+    </div>
     <div class="creator">
       <input id="taskText" placeholder="Thêm nhiệm vụ… (Enter)">
       <select id="taskZone">${zones.map(z=>`<option value="${z.id}">${z.name}</option>`).join('')}</select>
       <button class="btn-primary" id="btnAdd">Thêm</button>
     </div>
     ${groups.map(g=>{
-        const listHtml = g.list.map(t=>{
-            let subHtml = '';
-            // Zone E Display
-            if(g.z.kind === 'e' && t.kind === 'recurring') {
-                const key = `rec:${t.recurringId}`;
-                if(zoneEMap[key]) {
-                    const d = zoneEMap[key];
-                    const isCrown = d.points >= 7;
-                    subHtml = `
-                    <div class="task-streak-line">
-                        <span class="streak-tag ${isCrown?'crown':''}">${isCrown?'👑':''} Streak: ${d.streak} ngày</span>
-                        ${!isCrown ? `<span class="muted" style="font-size:11px;margin-left:4px">(${d.progress}/${d.threshold} để +1 E)</span>` : ''}
-                    </div>`;
-                }
-            }
-            // Zone Noise Display
-            if(g.z.kind === 'noise' && t.points < -1) {
-                 subHtml = `<div class="task-streak-line"><span class="streak-tag danger">💀 Phạt: ${t.points} E</span></div>`;
-            }
+      const headerStyle = g.z.bg ? `background-image:linear-gradient(0deg,rgba(0,0,0,.5),rgba(0,0,0,.15)),url('${g.z.bg}');` : '';
+      const listHtml = g.list.map(t=>{
+        let subHtml = '';
+        // Logic Zone E Text
+        if(g.z.kind === 'e' && t.kind === 'recurring'){
+             const key = `rec:${t.recurringId}`;
+             if(zoneEMap[key]){
+                 const d = zoneEMap[key];
+                 const isCrown = d.points >= 7;
+                 subHtml = `
+                 <div class="task-streak-line">
+                    <span class="streak-tag ${isCrown?'crown':''}">${isCrown?'👑':''} Streak: ${d.streak} ngày</span>
+                    ${!isCrown ? `<span class="muted" style="font-size:11px;margin-left:4px">(${d.progress}/${d.threshold} để +1 E)</span>` : ''}
+                 </div>`;
+             }
+        }
+        // Logic Zone Noise Text
+        if(g.z.kind === 'noise' && t.points < -1){
+             subHtml = `<div class="task-streak-line"><span class="streak-tag danger">💀 Phạt nặng: ${t.points} E</span></div>`;
+        }
 
-            return `
-            <li class="task ${t.done?'done':''}" data-id="${t.id}">
-                <div class="task-inner">
-                    <div class="left">
-                        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id},this.checked)">
-                        <div class="task-info-group">
-                            <div class="task-top-line">
-                                <span class="txt">${t.text}</span>
-                                ${renderTaskKindBadge(t, g.z)}
-                                <span class="task-points ${t.points>=0?'positive':'negative'}">${t.points>0?'+':''}${t.points}</span>
-                            </div>
-                            ${subHtml}
-                        </div>
-                    </div>
-                </div>
-                <button class="del-btn" onclick="deleteTask(${t.id}, '${g.z.kind}', ${t.points})">×</button>
-            </li>`;
-        }).join('');
-        
-        const headerStyle = g.z.bg ? `background-image:linear-gradient(0deg,rgba(0,0,0,.5),rgba(0,0,0,.15)),url('${g.z.bg}');color:#fff` : '';
         return `
-        <section class="zone">
-            <header class="${g.z.bg?'imgHead':''}" style="${headerStyle}">
-                <div><b>${g.z.name}</b></div>
-                <div class="badge">${g.done}/${g.count}</div>
-            </header>
-            <ul>${listHtml || '<li class="task"><div class="task-inner muted">Chưa có task</div></li>'}</ul>
-        </section>`;
+          <li class="task ${t.done?'done':''}" data-id="${t.id}">
+            <div class="task-inner">
+              <div class="left">
+                <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id}, this.checked)">
+                <div class="task-info-group">
+                   <div class="task-top-line">
+                      <span class="txt">${t.text}</span>
+                      ${renderTaskKindBadge(t, g.z)}
+                      <span class="task-points ${t.points>=0?'positive':'negative'}">${t.points>0?'+':''}${t.points}</span>
+                   </div>
+                   ${subHtml}
+                </div>
+              </div>
+            </div>
+            <button class="del-btn" onclick="deleteTask(${t.id}, '${g.z.kind}', ${t.points})">×</button>
+          </li>
+        `;
+      }).join('');
+
+      return `
+      <section class="zone">
+        <header class="${g.z.bg?'imgHead':''}" style="${headerStyle}">
+          <div><b>${g.z.name}</b></div>
+          <div class="badge">${g.done}/${g.count}</div>
+        </header>
+        <ul>${listHtml || '<li class="task"><div class="task-inner muted">Chưa có task</div></li>'}</ul>
+      </section>`;
     }).join('')}
   `;
-  
+
   document.getElementById('btnAdd').onclick = addTask;
   document.getElementById('taskText').onkeydown = e => e.key==='Enter' && addTask();
-  attachSwipeHandlers();
+  attachSwipeHandlersForTasks();
 }
 
 async function addTask(){
     const txt = document.getElementById('taskText').value.trim();
     const zid = Number(document.getElementById('taskZone').value);
     if(!txt) return;
-    
     const zones = getZones();
     const z = zones.find(x=>x.id===zid);
     const tasks = getTasks();
-
-    // Constraints
-    const activeInZone = getZoneActiveTasks(tasks, zid).length;
-    if(z.kind === 'e') {
+    
+    // Limits
+    const active = getZoneActiveTasks(tasks, zid).length;
+    if(z.kind === 'e'){
         const limit = getProfile().level >= 2 ? 6 : 5;
-        if(activeInZone >= limit) return alert(`Zone E giới hạn ${limit} task/ngày.`);
+        if(active >= limit) return alert(`Zone E giới hạn ${limit} task/ngày.`);
     }
-    if(z.kind === 'priority' && activeInZone >= 3) return alert('Zone Quan trọng tối đa 3 task.');
+    if(z.kind === 'priority' && active >= 3) return alert('Zone Quan trọng tối đa 3 task.');
 
     const pts = getTaskPoints(txt, z.kind);
     const newTask = {
-        id: Date.now(),
-        text: txt,
-        zoneId: zid,
-        done: false,
-        kind: 'single',
-        points: pts.points
+        id: Date.now(), text: txt, zoneId: zid, done: false, kind: 'single', points: pts.points
     };
 
-    // Auto-create recurring for E/Noise to support logic
-    if (z.kind === 'e' || z.kind === 'noise') {
-         const recId = Date.now();
-         const recs = getRecurring();
-         recs.push({
-           id: recId,
-           text: txt,
-           zoneId: zid,
-           type: 'daily',
-           points: pts.points
-         });
-         saveRecurring(recs);
-         newTask.kind = 'recurring';
-         newTask.recurringId = recId;
+    // Auto recurring for E/Noise
+    if(z.kind==='e' || z.kind==='noise'){
+        const recs = getRecurring();
+        const rid = Date.now();
+        recs.push({ id: rid, text: txt, zoneId: zid, type: 'daily', points: pts.points });
+        save(LS.RECUR, recs);
+        newTask.kind = 'recurring';
+        newTask.recurringId = rid;
     }
 
     tasks.push(newTask);
@@ -1421,26 +1743,26 @@ function toggleTask(id, checked){
 }
 
 function deleteTask(id, zoneKind, pts){
-    // Noise deletion logic
-    if(zoneKind === 'noise' && pts < -1) {
-        if(confirm(`Task này đang bị phạt ${pts} điểm. Bạn có muốn Reset về -1 để xóa không?`)){
-             const tasks = getTasks();
-             const t = tasks.find(x=>x.id===id);
-             if(t) {
-                 t.points = -1;
-                 if(t.recurringId) {
-                     const recs = getRecurring();
-                     const r = recs.find(x=>x.id==t.recurringId);
-                     if(r) r.points = -1;
-                     saveRecurring(recs);
-                 }
-                 setTasks(tasks);
-                 viewTasks();
-             }
+    // NOISE DELETE LOGIC
+    if(zoneKind === 'noise' && pts < -1){
+        if(confirm(`Task đang bị phạt ${pts} điểm. Reset về -1 để xóa?`)){
+            const tasks = getTasks();
+            const t = tasks.find(x=>x.id===id);
+            if(t){
+                t.points = -1;
+                if(t.recurringId){
+                    const recs = getRecurring();
+                    const r = recs.find(x=>x.id==t.recurringId);
+                    if(r) r.points = -1;
+                    save(LS.RECUR, recs);
+                }
+                setTasks(tasks);
+                viewTasks();
+            }
         }
         return;
     }
-    
+
     const tasks = getTasks();
     const t = tasks.find(x=>x.id===id);
     if(t && t.recurringId) delRecurring(t.recurringId);
@@ -1448,113 +1770,10 @@ function deleteTask(id, zoneKind, pts){
     viewTasks();
 }
 
-/* OTHER VIEWS */
-function viewArchive(){
-    const list = getArchive();
-    view.innerHTML = `
-    <div class="card" style="margin-top:0">
-        <h3>Lưu trữ</h3>
-        <button class="btn-danger btn-sm" onclick="if(confirm('Xóa hết?')) { setArchive([]); render('archive'); }">Xóa hết</button>
-        <ul class="archive-list" style="margin-top:10px">
-            ${list.map(i=>`<li class="archive-item">${i.text}</li>`).join('')}
-        </ul>
-    </div>`;
-}
-
-function viewStats(){
-    const hist = getHist();
-    const data = hist.slice(-7).map(h => calcTotalE(h.level, h.xp));
-    view.innerHTML = `
-    <div class="card chart-card" style="margin-top:0">
-      <h3>Biểu đồ E (7 ngày)</h3>
-      <canvas id="chart7"></canvas>
-    </div>`;
-    setTimeout(() => drawChart('chart7', data), 100);
-}
-
-function viewNotes(){
-    view.innerHTML = `
-    <div class="card" style="margin-top:0">
-      <h3>Ghi chú</h3>
-      <textarea id="notesEditor" class="notes-editor" oninput="saveNotes(this.value)">${getNotes()}</textarea>
-    </div>`;
-}
-
-function viewSettings(){
-    const p = getProfile();
-    view.innerHTML = `
-    <div class="card" style="margin-top:0">
-      <h3>Điều khiển</h3>
-      <div class="grid" style="grid-template-columns:1fr 1fr">
-        <button class="btn-primary" onclick="performDayRollover()">Qua ngày</button>
-        <button class="btn-danger" onclick="if(confirm('Reset?')) resetPoints()">Reset điểm</button>
-      </div>
-    </div>
-    <div class="card">
-      <h3>Hồ sơ</h3>
-      <div class="row">
-        <div>Tên</div>
-        <input value="${p.name}" onchange="setName(this.value)">
-      </div>
-    </div>
-    <div class="card">
-       <h3>Upload Nền</h3>
-       <input type="file" onchange="uploadBg(this, 'app')">
-    </div>`;
-}
-
-function uploadBg(inp, type){
-    const f = inp.files[0];
-    if(f) {
-        const r = new FileReader();
-        r.onload = e => {
-            updateSavedThemeBackgrounds(type==='app'?{appBgUrl:e.target.result}:{heroBgUrl:e.target.result});
-            renderHero();
-        };
-        r.readAsDataURL(f);
-    }
-}
-
-/* CHART DRAWING (Mini version) */
-function drawChart(id, vals){
-  const cvs=document.getElementById(id); if(!cvs) return;
-  const ctx=cvs.getContext('2d');
-  const w=cvs.clientWidth, h=cvs.clientHeight;
-  cvs.width=w; cvs.height=h;
-  if(!vals.length) return;
-  const min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
-  const pts = vals.map((v,i)=>({x: 20+(w-40)*(i/(vals.length-1||1)), y: h-20-(h-40)*((v-min)/span)}));
-  ctx.strokeStyle='#8b7cff'; ctx.lineWidth=3; ctx.beginPath();
-  pts.forEach((p,i)=>i==0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
-  ctx.stroke();
-  pts.forEach(p=>{ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,6.28); ctx.fill(); ctx.stroke(); });
-}
-
-/* TOUCH SWIPE */
-function attachSwipeHandlers(){
-    document.querySelectorAll('li.task').forEach(li=>{
-        let sx=0;
-        li.addEventListener('touchstart',e=>sx=e.touches[0].clientX);
-        li.addEventListener('touchmove',e=>{
-            if(e.touches[0].clientX - sx < -40) li.classList.add('show-del');
-            if(e.touches[0].clientX - sx > 40) li.classList.remove('show-del');
-        });
-        li.querySelector('.task-inner').onclick=()=>li.classList.remove('show-del');
-    });
-}
-
-function render(tab){
-    currentTab = tab;
-    buildTabsBar(tab);
-    renderHero();
-    if(tab==='tasks') viewTasks();
-    else if(tab==='archive') viewArchive();
-    else if(tab==='stats') viewStats();
-    else if(tab==='notes') viewNotes();
-    else if(tab==='settings') viewSettings();
-}
-
-// Init
+/* ==============================
+   BOOT
+============================== */
+ensureName();
 render('tasks');
 </script>
 </body>
