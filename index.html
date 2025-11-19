@@ -418,6 +418,42 @@ input[type="checkbox"]{
   transition:width .3s ease;
 }
 
+.zone-noise-progress{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.zone-noise-progress-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:13px;
+  font-weight:500;
+}
+
+.zone-noise-progress-label{
+  font-weight:600;
+}
+
+.zone-noise-progress-value{
+  color:var(--muted);
+}
+
+.zone-noise-progress-bar{
+  height:10px;
+  border-radius:999px;
+  background:rgba(239,68,68,.2);
+  overflow:hidden;
+}
+
+.zone-noise-progress-fill{
+  height:100%;
+  background:#ef4444;
+  border-radius:999px;
+  transition:width .3s ease;
+}
+
 /* task lists */
 ul{list-style:none;margin:0;padding:0}
 .archive-toolbar{
@@ -1147,6 +1183,38 @@ function renderZoneETaskProgress(task, zoneEStore){
       </div>
       <div class="zone-e-progress-bar">
         <div class="zone-e-progress-fill" style="width:${widthPercent}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderZoneNoiseTaskProgress(task, noiseStore){
+  if(!noiseStore || !task || task.kind !== 'recurring') return '';
+  const key = getNoiseTaskKey(task);
+  if(!key) return '';
+  const entry = noiseStore[key];
+  if(!entry) return '';
+
+  const basePoints = clampNoiseBasePoints(entry.basePoints);
+  if(basePoints <= NOISE_STREAK_MIN_POINTS) return '';
+  const currentPoints = clampNoiseBasePoints(task.points);
+  const totalPenaltyWindow = Math.max(1, basePoints - NOISE_STREAK_MIN_POINTS);
+  const penaltyDepth = Math.max(0, Math.min(totalPenaltyWindow, basePoints - currentPoints));
+  const remainingBuffer = Math.max(0, totalPenaltyWindow - penaltyDepth);
+  const progressRatio = penaltyDepth / totalPenaltyWindow;
+  const widthPercent = Math.round(progressRatio * 1000) / 10;
+  const penaltyLabel = `${penaltyDepth}/${totalPenaltyWindow}`;
+  const tooltip = `Đệm phạt còn lại: ${remainingBuffer}`;
+  const safeTitle = tooltip.replace(/"/g, '&quot;');
+
+  return `
+    <div class="zone-noise-progress" title="${safeTitle}">
+      <div class="zone-noise-progress-header">
+        <span class="zone-noise-progress-label">Phạt tích lũy</span>
+        <span class="zone-noise-progress-value">${penaltyLabel}</span>
+      </div>
+      <div class="zone-noise-progress-bar">
+        <div class="zone-noise-progress-fill" style="width:${widthPercent}%"></div>
       </div>
     </div>
   `;
@@ -3088,6 +3156,10 @@ async function viewTasks(){
             const zoneEProgressHtml = z.kind === 'e'
               ? renderZoneETaskProgress(t, zoneEStore)
               : '';
+            const zoneNoiseProgressHtml = z.kind === 'noise'
+              ? renderZoneNoiseTaskProgress(t, noiseStore)
+              : '';
+            const progressHtml = zoneEProgressHtml || zoneNoiseProgressHtml;
             return `
               <li class="task ${t.done?'done':''}" data-id="${t.id}" data-kind="${t.kind||'single'}">
                 <div class="task-inner">
@@ -3097,7 +3169,7 @@ async function viewTasks(){
                     ${renderTaskKindBadge(t, z)}
                     ${renderTaskPoints(t.points, t.aiReason, getTaskPointExtras(t, z.kind, pointExtraStores))}
                   </div>
-                  ${zoneEProgressHtml}
+                  ${progressHtml}
                 </div>
                 <button class="del-btn" data-id="${t.id}">×</button>
               </li>
