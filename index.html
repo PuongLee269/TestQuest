@@ -3025,15 +3025,26 @@ async function viewTasks(){
       let streakInfoHtml = '';
       if(z.kind === 'noise' || z.kind === 'e'){
         const targetStore = z.kind === 'noise' ? noiseStore : zoneEStore;
-        const streakCount = g.list
+        const streakDetails = [];
+        g.list
           .filter(task => task.kind === 'recurring')
-          .reduce((count, task) => {
+          .forEach(task => {
             const key = getNoiseTaskKey(task);
-            if(!key || !targetStore[key]) return count;
-            const streakValue = parseNoiseStreak(targetStore[key].streak);
-            return streakValue > 0 ? count + 1 : count;
-          }, 0);
-        streakInfoHtml = `<div class="muted">Streak: ${streakCount} nhiệm vụ</div>`;
+            if(!key) return;
+            const entry = targetStore[key];
+            if(!entry) return;
+            const streakValue = parseNoiseStreak(entry.streak);
+            if(streakValue <= 0) return;
+
+            if(z.kind === 'e'){
+              const nextRequirement = getZoneENextRequirement(entry.level ?? entry.basePoints);
+              const ratioText = nextRequirement ? `${streakValue}/${nextRequirement}` : `${streakValue}`;
+              streakDetails.push(`<div class="muted">${task.text}: ${ratioText}</div>`);
+            }else{
+              streakDetails.push(`<div class="muted">${task.text}: ${streakValue} ngày</div>`);
+            }
+          });
+        streakInfoHtml = streakDetails.join('');
       }
 
       const zoneHeaderNote = (() => {
