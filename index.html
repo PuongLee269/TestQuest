@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
-<meta name="theme-color" content="#8b7cff">
+<link rel="icon" type="image/png" sizes="192x192" href="image/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="image/icon-180.png">
 <title data-app="document-title">Mori Quest</title>
 <style>
 :root{
@@ -17,6 +17,7 @@
   --panel-bg:rgba(255,255,255,.85);
   --panel-border:rgba(0,0,0,.05);
   --panel-shadow:0 16px 40px rgba(0,0,0,.1);
+  --glass-bg:rgba(255,255,255,.08);
 }
 
 *{box-sizing:border-box}
@@ -29,144 +30,601 @@ body{
   background-attachment:fixed;
 }
 
-.wrap{max-width:960px;margin:12px auto;padding:20px;}
+.wrap{
+  max-width:960px;
+  margin:12px auto;
+  padding:20px;
+}
 
-h1{margin:0 0 12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
-h1 .app-title{font-size:24px;font-weight:600;color:#1b1e2e;}
-h1 .app-version{font-size:14px;font-weight:500;color:var(--muted);}
+h1{
+  margin:0 0 12px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px
+}
+
+h1 .app-title{
+  font-size:24px;
+  font-weight:600;
+  color:#1b1e2e;
+}
+
+h1 .app-version{
+  font-size:14px;
+  font-weight:500;
+  color:var(--muted);
+}
 
 /* Hero */
 .hero{
-  position:relative;border-radius:24px;background:var(--gradient-main);
-  background-size:cover;background-position:center;color:#fff;
-  overflow:hidden;margin-bottom:20px;box-shadow:0 24px 48px rgba(139,124,255,.35);
+  position:relative;
+  border-radius:24px;
+  background:var(--gradient-main);
+  background-size:cover;
+  background-position:center;
+  color:#fff;
+  overflow:hidden;
+  margin-bottom:20px;
+  box-shadow:0 24px 48px rgba(139,124,255,.35);
 }
 .hero::before{
-  content:"";position:absolute;inset:0;
+  content:"";
+  position:absolute;
+  inset:0;
   background:linear-gradient(135deg,rgba(10,14,39,.55),rgba(10,14,39,.25));
 }
 .hero-inner{
-  position:relative;z-index:1;display:flex;flex-direction:column;
-  align-items:flex-start;gap:20px;padding:28px;text-align:left;
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:20px;
+  padding:28px;
+  text-align:left;
 }
 .hero-info{flex:1;min-width:0}
-.hero-name{margin:0;font-size:26px;font-weight:700;letter-spacing:.4px;}
-.hero-meta{margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;font-size:16px;font-weight:500;}
+.hero-name{
+  margin:0;
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:.4px;
+}
+.hero-meta{
+  margin-top:8px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  font-size:16px;
+  font-weight:500;
+}
+.hero-meta span{display:inline-flex;align-items:center;gap:6px}
 .hero-progress{margin-top:18px;width:100%}
-.hero-progress-bar{height:10px;background:rgba(255,255,255,.35);border-radius:999px;overflow:hidden;}
+.hero-progress-bar{
+  height:10px;
+  background:rgba(255,255,255,.35);
+  border-radius:999px;
+  overflow:hidden;
+}
 .hero-progress-fill{
-  height:100%;width:0;
+  height:100%;
+  width:0;
   background:linear-gradient(90deg,#ff5f6d,#ffc371,#f9f871,#a8ff78,#78ffd6,#57c7ff,#9d50bb);
-  background-size:300% 100%;border-radius:999px;transition:width .6s ease;
+  background-size:300% 100%;
+  box-shadow:0 6px 18px rgba(255,255,255,.35);
+  border-radius:999px;
+  transition:width .6s ease;
   animation:hero-progress-rainbow 6s linear infinite;
 }
-@keyframes hero-progress-rainbow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.hero-progress-label{margin-top:8px;font-size:14px;opacity:.9;}
-
-/* Tabs */
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
-.tab-btn{
-  display:flex;align-items:center;justify-content:center;min-height:var(--tap);
-  padding:8px 14px;border:1px solid var(--panel-border);background:rgba(255,255,255,.8);
-  border-radius:12px;cursor:pointer;white-space:nowrap;font-weight:500;
-  box-shadow:0 6px 16px rgba(0,0,0,.08);color:#1b1e2e;font-size:18px;
+@keyframes hero-progress-rainbow{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
 }
-.tab-btn.active{background:var(--gradient-main);color:#fff;border-color:transparent;box-shadow:0 10px 20px rgba(139,124,255,.4);}
+.hero-progress-label{
+  margin-top:8px;
+  font-size:14px;
+  letter-spacing:.2px;
+  opacity:.9;
+}
 
-/* Buttons */
+/* Tabs bar */
+.tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:16px;
+  overflow-x:auto;
+  padding-bottom:4px;
+}
+.tabs::-webkit-scrollbar{height:6px}
+.tabs::-webkit-scrollbar-thumb{background:#ddd;border-radius:6px}
+
+.tab-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:var(--tap);
+  padding:8px 14px;
+  border:1px solid var(--panel-border);
+  background:rgba(255,255,255,.8);
+  border-radius:12px;
+  cursor:pointer;
+  white-space:nowrap;
+  font-weight:500;
+  box-shadow:0 6px 16px rgba(0,0,0,.08);
+  color:#1b1e2e;
+  font-size:18px;
+}
+.tab-btn.active{
+  background:var(--gradient-main);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 10px 20px rgba(139,124,255,.4);
+}
+
+/* generic buttons */
 .btn-primary{
-  min-height:var(--tap);background:var(--gradient-main);color:#fff;border:none;
-  border-radius:12px;padding:10px 14px;font-weight:500;cursor:pointer;
-  box-shadow:0 10px 20px rgba(139,124,255,.4);font-size:14px;
+  min-height:var(--tap);
+  background:var(--gradient-main);
+  color:#fff;border:none;border-radius:12px;
+  padding:10px 14px;font-weight:500;
+  cursor:pointer;
+  box-shadow:0 10px 20px rgba(139,124,255,.4);
+  font-size:14px;
 }
 .btn-ghost{
-  min-height:var(--tap);background:rgba(255,255,255,.8);border:1px solid var(--panel-border);
-  border-radius:12px;padding:10px 14px;font-size:14px;font-weight:500;color:#1b1e2e;
-  box-shadow:0 6px 16px rgba(0,0,0,.08);cursor:pointer;
+  min-height:var(--tap);
+  background:rgba(255,255,255,.8);
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  padding:10px 14px;
+  font-size:14px;
+  font-weight:500;
+  color:#1b1e2e;
+  box-shadow:0 6px 16px rgba(0,0,0,.08);
+  cursor:pointer;
+}
+.btn-ghost:active{
+  transform:translateY(1px);
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+.btn-ghost[disabled],
+.btn-ghost[data-loading]{
+  cursor:progress;
+  opacity:.6;
+  box-shadow:none;
+  transform:none;
 }
 .btn-danger{
-  min-height:var(--tap);background:linear-gradient(135deg,#ff5f48 0%,#ff3425 100%);
-  color:#fff;border:none;border-radius:12px;padding:10px 14px;font-weight:500;
-  cursor:pointer;box-shadow:0 10px 20px rgba(255,60,48,.4);font-size:14px;
+  min-height:var(--tap);
+  background:linear-gradient(135deg,#ff5f48 0%,#ff3425 100%);
+  color:#fff;border:none;border-radius:12px;
+  padding:10px 14px;font-weight:500;
+  cursor:pointer;
+  box-shadow:0 10px 20px rgba(255,60,48,.4);
+  font-size:14px;
 }
-.btn-primary.btn-sm,.btn-ghost.btn-sm,.btn-danger.btn-sm{min-height:36px;padding:6px 12px;font-size:13px;}
+.btn-primary.btn-sm,
+.btn-ghost.btn-sm,
+.btn-danger.btn-sm{
+  min-height:36px;
+  padding:6px 12px;
+  font-size:13px;
+}
 
-/* UI Elements */
-.pill{background:rgba(255,255,255,.8);border:1px solid var(--panel-border);border-radius:var(--radius-pill);padding:4px 10px;font-size:14px;font-weight:500;color:#1b1e2e;}
-.task-points{font-weight:bold;margin-left:8px;font-size:14px;display:inline-flex;align-items:center;gap:4px;}
-.task-points.positive{color:#16a34a;}
-.task-points.negative{color:#dc2626;}
+/* pills */
+.pill{
+  background:rgba(255,255,255,.8);
+  border:1px solid var(--panel-border);
+  border-radius:var(--radius-pill);
+  padding:4px 10px;
+  font-size:14px;
+  font-weight:500;
+  color:#1b1e2e;
+  box-shadow:0 6px 16px rgba(0,0,0,.08);
+}
+.task-points {
+  font-weight: bold;
+  margin-left: 8px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.task-points.positive { color: #16a34a; }
+.task-points.negative { color: #dc2626; }
+.task-points.neutral { color: #4b5563; }
+.task-point-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+}
 .task-kind{
-  display:inline-flex;align-items:center;padding:2px 8px;margin-left:8px;
-  font-size:11px;font-weight:600;border-radius:999px;text-transform:uppercase;
-  letter-spacing:.4px;background:rgba(139,124,255,.18);color:#5a4cc1;
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  margin-left:8px;
+  font-size:11px;
+  font-weight:600;
+  border-radius:999px;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  background:rgba(139,124,255,.18);
+  color:#5a4cc1;
 }
-.task-kind.single{background:rgba(34,197,94,.18);color:#1f9d55;}
-.task-kind.recurring{background:rgba(59,130,246,.18);color:#2563eb;}
-.task-kind.recurring.negative{background:rgba(248,113,113,.18);color:#dc2626;}
-.top{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.task-kind.single{
+  background:rgba(34,197,94,.18);
+  color:#1f9d55;
+}
+.task-kind.recurring{
+  background:rgba(59,130,246,.18);
+  color:#2563eb;
+}
+.task-kind.recurring.negative{
+  background:rgba(248,113,113,.18);
+  color:#dc2626;
+}
+.task.done .task-kind{opacity:.7}
+.muted{color:var(--muted);font-size:14px}
+.top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:12px;
+  flex-wrap:wrap
+}
+
+/* Inputs */
 input,select,textarea{
-  height:var(--tap);padding:10px;border-radius:12px;border:1px solid rgba(0,0,0,.08);
-  width:100%;font:inherit;font-size:14px;background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.05);
+  height:var(--tap);
+  padding:10px;
+  border-radius:12px;
+  border:1px solid rgba(0,0,0,.08);
+  width:100%;
+  font:inherit;
+  font-size:14px;
+  background:#fff;
+  box-shadow:0 6px 16px rgba(0,0,0,.05);
 }
-input[type="checkbox"]{height:auto;width:auto;box-shadow:none;}
+input[type="checkbox"]{
+  height:auto;width:auto;box-shadow:none;
+}
 
-/* Layout & Cards */
-.grid{display:grid;gap:10px;}
-.row{display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:flex-start;}
+/* layout (Settings rows) */
+.grid{display:grid;gap:10px}
+.row{
+  display:grid;
+  grid-template-columns:200px 1fr;
+  gap:10px;
+  align-items:flex-start;
+}
+
 .card{
-  padding:16px;border:1px solid var(--panel-border);border-radius:16px;
-  background:var(--panel-bg);margin-top:16px;box-shadow:var(--panel-shadow);
-  position:relative;overflow:hidden;
+  padding:16px;
+  border:1px solid var(--panel-border);
+  border-radius:16px;
+  background:var(--panel-bg);
+  margin-top:16px;
+  box-shadow:var(--panel-shadow);
+  position:relative;
+  overflow:hidden;
 }
-.card h3{margin:0 0 12px;font-size:16px;font-weight:600;color:#1b1e2e;}
-.bar{height:10px;background:rgba(0,0,0,.07);border-radius:6px;overflow:hidden;margin-bottom:10px;}
-.fill{height:100%;background:linear-gradient(90deg,#8b7cff 0%,#b09bff 100%);}
+.card h3{
+  margin:0 0 12px;
+  font-size:16px;
+  font-weight:600;
+  color:#1b1e2e;
+}
 
-/* Tasks */
-ul{list-style:none;margin:0;padding:0;}
+.notes-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.notes-status{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.notes-subtitle{
+  margin:0 0 12px;
+  font-size:14px;
+  color:var(--muted);
+}
+
+.notes-editor{
+  width:100%;
+  min-height:260px;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid var(--panel-border);
+  background:rgba(255,255,255,.9);
+  box-shadow:inset 0 4px 12px rgba(0,0,0,.06);
+  resize:vertical;
+  font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--ink);
+}
+
+.notes-editor:focus{
+  outline:none;
+  border-color:rgba(139,124,255,.7);
+  box-shadow:0 0 0 3px rgba(139,124,255,.18);
+}
+
+.bar{
+  height:10px;
+  background:rgba(0,0,0,.07);
+  border-radius:6px;
+  overflow:hidden;
+  margin-bottom:10px;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.12);
+}
+.fill{
+  height:100%;
+  background:linear-gradient(90deg,#8b7cff 0%,#b09bff 100%);
+}
+
+/* task lists */
+ul{list-style:none;margin:0;padding:0}
+.archive-toolbar{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.archive-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin:16px 0 0;
+}
+.archive-item{
+  display:flex;
+  gap:12px;
+  padding:12px;
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  background:rgba(255,255,255,.8);
+  box-shadow:0 6px 16px rgba(0,0,0,.06);
+}
+.archive-info{flex:1;min-width:0;}
+.archive-title{font-weight:600;word-break:break-word;}
+.archive-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+  font-size:12px;
+  color:var(--muted);
+  align-items:center;
+}
+.archive-meta .sep{color:rgba(0,0,0,.25);}
+.archive-reason{
+  margin-top:8px;
+  font-size:13px;
+  color:var(--muted);
+  word-break:break-word;
+}
+.archive-actions{display:flex;align-items:center;gap:8px;}
+.archive-empty{
+  margin-top:12px;
+  color:var(--muted);
+}
+
 .zone{
-  border:1px solid rgba(0,0,0,.05);border-radius:16px;margin:16px 0;
-  background:rgba(255,255,255,.8);box-shadow:0 12px 32px rgba(0,0,0,.08);overflow:hidden;
+  border:1px solid rgba(0,0,0,.05);
+  border-radius:16px;
+  margin:16px 0;
+  background:rgba(255,255,255,.8);
+  box-shadow:0 12px 32px rgba(0,0,0,.08);
+  overflow:hidden;
 }
 .zone header{
-  display:flex;justify-content:space-between;align-items:center;padding:12px 16px;
-  border-bottom:1px solid rgba(0,0,0,.05);background:linear-gradient(135deg,#fafbff 0%,#f6f7ff 100%);
-  font-weight:500;color:#1b1e2e;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+  border-bottom:1px solid rgba(0,0,0,.05);
+  background:linear-gradient(135deg,#fafbff 0%,#f6f7ff 100%);
+  font-weight:500;
+  color:#1b1e2e;
 }
-.zone header.imgHead{color:#fff;border-bottom:1px solid rgba(255,255,255,.3);background-size:cover;background-position:center;}
-.badge{font-size:12px;padding:2px 8px;border-radius:var(--radius-pill);background:#fff;border:1px solid rgba(0,0,0,.07);font-weight:500;}
+.zone header.imgHead{
+  color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.3);
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-blend-mode:normal;
+}
+.zone header.imgHead .badge{
+  background:rgba(0,0,0,.4);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.3);
+}
 
-li.task{position:relative;border-top:1px solid rgba(0,0,0,.03);background:transparent;padding:0;overflow:hidden;}
-.task-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:transparent;transition:transform .2s;}
-.left{display:flex;align-items:flex-start;gap:10px;}
-.done .txt{text-decoration:line-through;color:#9aa;}
-.creator{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
-.left input[type="checkbox"]{transform:scale(1.25);margin-top:4px;}
+.badge{
+  font-size:12px;
+  padding:2px 8px;
+  border-radius:var(--radius-pill);
+  background:#fff;
+  border:1px solid rgba(0,0,0,.07);
+  color:#1b1e2e;
+  font-weight:500;
+  box-shadow:0 4px 10px rgba(0,0,0,.08);
+}
 
-.task-info-group{display:flex;flex-direction:column;justify-content:center;flex:1;}
-.task-top-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.4;}
-.task-streak-line{font-size:12px;font-weight:600;margin-top:4px;display:flex;align-items:center;gap:4px;}
-.streak-tag{color:#d97706;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:4px;}
-.streak-tag.danger{color:#dc2626;background:rgba(248,113,113,0.15);}
-.streak-tag.crown{color:#7c3aed;background:rgba(139,92,246,0.15);}
+/* swipe task row */
+li.task{
+  position:relative;
+  border-top:1px solid rgba(0,0,0,.03);
+  background:transparent;
+  padding:0;
+  overflow:hidden;
+}
+.task-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  background:transparent;
+  transition:transform .2s;
+}
+/* Updated .left for vertical stacking */
+.left{
+    display:flex;
+    align-items:flex-start; /* Align checkbox top */
+    gap:10px;
+}
+.done .txt{text-decoration:line-through;color:#9aa}
+.creator{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.left input[type="checkbox"]{transform:scale(1.25); margin-top: 4px;}
 
 .del-btn{
-  position:absolute;right:0;top:0;bottom:0;width:60px;min-width:60px;padding:0;border:none;
-  background:linear-gradient(135deg,#ff5f48 0%,#ff3425 100%);color:#fff;font-size:20px;
-  font-weight:600;display:flex;align-items:center;justify-content:center;
-  box-shadow:-4px 0 16px rgba(0,0,0,.2);transition:transform .2s;transform:translateX(60px);
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:60px;
+  min-width:60px;
+  padding:0;
+  border:none;
+  border-radius:0;
+  background:linear-gradient(135deg,#ff5f48 0%,#ff3425 100%);
+  color:#fff;
+  font-size:20px;
+  font-weight:600;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:-4px 0 16px rgba(0,0,0,.2);
+  transition:transform .2s;
+  transform:translateX(60px); /* ẩn ban đầu */
 }
-li.task.show-del .task-inner{transform:translateX(-60px);}
-li.task.show-del .del-btn{transform:translateX(0);}
-li.task.dragging .task-inner, li.task.dragging .del-btn{transition:none;}
 
-/* Notes */
-.notes-editor{width:100%;min-height:260px;padding:14px;border-radius:12px;border:1px solid var(--panel-border);background:rgba(255,255,255,.9);resize:vertical;font:inherit;}
+li.task.show-del .task-inner{
+  transform:translateX(-60px);
+}
+li.task.show-del .del-btn{
+  transform:translateX(0);
+}
+
+/* tắt transition khi đang kéo */
+li.task.dragging .task-inner{
+  transition:none;
+}
+li.task.dragging .del-btn{
+  transition:none;
+}
+
+/* Leaderboard table */
+.table-wrap{
+  overflow:auto;
+  border:1px solid rgba(0,0,0,.05);
+  border-radius:16px;
+  background:rgba(255,255,255,.8);
+  box-shadow:0 16px 32px rgba(0,0,0,.08);
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:transparent;
+  font-size:14px;
+}
+th,td{
+  padding:12px 16px;
+  border-bottom:1px solid rgba(0,0,0,.05);
+  text-align:left;
+  white-space:nowrap;
+}
+th{
+  font-weight:600;
+  color:#1b1e2e;
+  background:rgba(255,255,255,.6)
+}
+.lb-medal{
+  margin-left:6px;
+  font-size:16px;
+}
+
+/* Charts */
+.chart-card canvas{
+  width:100%;
+  max-width:100%;
+  height:160px;
+  display:block;
+}
+
+/* thumb preview */
+.thumb{
+  width:48px;
+  height:48px;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,.1);
+  background-size:cover;
+  background-position:center;
+  background-color:#eee;
+  box-shadow:0 6px 16px rgba(0,0,0,.08);
+}
+
+/* Custom layout for task info */
+.task-info-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+}
+
+.task-top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+
+.task-streak-line {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.streak-tag {
+  color: #d97706;
+  background: rgba(251, 191, 36, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.streak-tag.danger {
+  color: #dc2626;
+  background: rgba(248, 113, 113, 0.15);
+}
+.streak-tag.crown {
+    color: #7c3aed;
+    background: rgba(139, 92, 246, 0.15);
+}
 
 @media (max-width:768px){
-  .row{grid-template-columns:1fr;}
-  .creator{flex-direction:column;}
+    .row{grid-template-columns:1fr}
+    .creator{flex-direction:column}
+    h1 .app-title{font-size:20px}
+  .hero-inner{gap:18px;padding:22px}
+  .hero-name{font-size:22px}
+  .hero-meta{font-size:15px}
+}
+@media (max-width:480px){
+  body{font-size:15px}
+  .tab-btn{padding:8px 12px}
+  .tabs{gap:6px}
 }
 </style>
 </head>
@@ -185,6 +643,7 @@ li.task.dragging .task-inner, li.task.dragging .del-btn{transition:none;}
         <div class="hero-meta">
           <span class="hero-level" data-hero="level">Level 1</span>
           <span class="hero-xp" data-hero="xp">0 E</span>
+          <span class="hero-weekly" data-hero="weekly-avg">TB tuần: --</span>
         </div>
         <div class="hero-progress">
           <div class="hero-progress-bar">
@@ -197,29 +656,64 @@ li.task.dragging .task-inner, li.task.dragging .del-btn{transition:none;}
   </section>
 
   <div class="tabs" id="tabsBar"></div>
+
   <div id="view">Đang nạp…</div>
 </div>
 
 <script>
 /* ==============================
-   CONFIG & CONSTANTS
+   CONFIG
 ============================== */
 const APP_NAME = 'Mori Quest';
+
 const CONFIG = {
-  VERSION:'2.1', // Updated version
-  SETTINGS_PASS:'1000'
+  VERSION:'2.0',
+  SETTINGS_PASS:'1000',
+  HERO_LEVELS:[
+    {
+      minLevel:1,
+      maxLevel:3,
+      characterImg:"",
+      backgroundImg:'linear-gradient(135deg,#fde68a 0%,#f97316 100%)'
+    },
+    {
+      minLevel:4,
+      maxLevel:6,
+      characterImg:"",
+      backgroundImg:'linear-gradient(135deg,#bae6fd 0%,#2563eb 100%)'
+    },
+    {
+      minLevel:7,
+      characterImg:"",
+      backgroundImg:'linear-gradient(135deg,#e9d5ff 0%,#7c3aed 100%)'
+    }
+  ]
 };
 
-const ZONE_KIND_LABELS = {
-  'e':'Zone E',
-  'priority':'Zone Quan trọng',
-  'noise':'Zone Noise',
-  'regular':'Zone Thường'
+// Dùng link RAW để ảnh hiển thị trong CSS
+const RAW_APP_BG = "https://raw.githubusercontent.com/PuongLee269/HelloWorld/cc1ea4b1d90dab277ff5138dc9eb9e928986d9ef/image/ChatGPT%20Image%2022_24_20%2031%20thg%2010%2C%202025.png";
+const RAW_LEVEL_BG = "https://raw.githubusercontent.com/PuongLee269/HelloWorld/747e7bfebad622025035376e42939a217dde236b/image/ChatGPT%20Image%2016_04_12%2028%20thg%2010%2C%202025.png";
+
+CONFIG.BACKGROUND_THEME = {
+  appDefaultBgUrl: `url('${RAW_APP_BG}')`,
+  heroByLevel: [
+    { minLevel: 1, maxLevel: 3, heroBgUrl: `url('${RAW_LEVEL_BG}')`, appBgUrl: `url('${RAW_APP_BG}')` },
+    { minLevel: 4, maxLevel: 6, heroBgUrl: `url('${RAW_LEVEL_BG}')`, appBgUrl: `url('${RAW_APP_BG}')` },
+    { minLevel: 7, heroBgUrl: `url('${RAW_LEVEL_BG}')`, appBgUrl: `url('${RAW_APP_BG}')` }
+  ]
 };
-const ZONE_KIND_ORDER = ['e','priority','noise','regular'];
-const DEFAULT_ZONES = ZONE_KIND_ORDER.map((kind)=>({
-  name: ZONE_KIND_LABELS[kind], kind, bg:''
-}));
+
+window.APP_CONFIG = CONFIG;
+const APP_VERSION = CONFIG.VERSION;
+
+(function syncAppMeta(){
+  const versionLabel = `v${APP_VERSION}`;
+  document.title = `${APP_NAME} – ${versionLabel}`;
+  const nameEl = document.querySelector('[data-app="title"]');
+  if(nameEl) nameEl.textContent = APP_NAME;
+  const versionEl = document.querySelector('[data-app="version"]');
+  if(versionEl) versionEl.textContent = versionLabel;
+})();
 
 /* ==============================
    LOCAL STORAGE KEYS
@@ -231,40 +725,224 @@ const LS = {
   RECUR:'tq_recurring',
   DAY:'tq_sim_day',
   BONUS:'tq_bonus_flags',
+  SPAWN:'tq_spawned_day',
+  LBCACHE:'tq_lb_cache',
   HIST:'tq_hist',
+  REALDATE:'tq_real_date',
+  ARCHIVE:'tq_archive',
+  ZONE_E_BONUS_DAY:'tq_zone_e_bonus_day',
+  NOISE_STREAKS:'tq_noise_streaks',
   THEME:'tq_theme',
-  NOTES:'tq_notes',
-  ZONE_E_PROGRESS:'tq_zone_e_progress' // Store complex E logic
+  ZONE_E_STREAKS:'tq_zone_e_streaks', // Note: Now used for leveling logic too
+  NOTES:'tq_notes'
 };
 
-/* ==============================
-   CORE HELPERS
-============================== */
-function load(key, def){ try{ return JSON.parse(localStorage.getItem(key)) ?? def }catch{ return def } }
-function save(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
-
-function getProfile(){
-  let p = load(LS.PROFILE);
-  if(!p || typeof p!=='object' || Array.isArray(p)){
-    p = { id:Date.now().toString(), name:'', level:1, xp:0 };
-    save(LS.PROFILE, p);
-  }
-  return p;
+function normalizeArchiveText(raw){
+  const text = String(raw || '').trim();
+  if(!text) return '';
+  return text.normalize ? text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ') : text;
 }
+function normalizeArchiveEntry(raw){
+  let text = '';
+  if(typeof raw === 'string') text = raw;
+  else if(raw && typeof raw === 'object') text = raw.text != null ? raw.text : '';
+  const clean = String(text || '').trim();
+  if(!clean) return null;
+  return { text: clean };
+}
+function getArchive(){
+  const raw = load(LS.ARCHIVE, []);
+  if(!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const result = [];
+  for(const item of raw){
+    const entry = normalizeArchiveEntry(item);
+    if(!entry) continue;
+    const key = normalizeArchiveText(entry.text);
+    if(seen.has(key)) continue;
+    seen.add(key);
+    result.push(entry);
+  }
+  return result;
+}
+function setArchive(list){
+  if(!Array.isArray(list)) list = [];
+  const seen = new Set();
+  const normalized = [];
+  for(const item of list){
+    const entry = normalizeArchiveEntry(item);
+    if(!entry) continue;
+    const key = normalizeArchiveText(entry.text);
+    if(seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(entry);
+  }
+  save(LS.ARCHIVE, normalized);
+}
+
+const ZONE_KIND_LABELS = {
+  'e':'Zone E',
+  'priority':'Zone Quan trọng',
+  'noise':'Zone Noise',
+  'regular':'Zone Thường'
+};
+const ZONE_KIND_ORDER = ['e','priority','noise','regular'];
+const DEFAULT_ZONES = ZONE_KIND_ORDER.map((kind)=>({
+  name: ZONE_KIND_LABELS[kind],
+  kind,
+  bg:''
+}));
+const DAILY_ZONE_KINDS = new Set(['e','noise']);
+const ARCHIVE_ZONE_KINDS = new Set(['priority','regular']);
+let lbTimer = null;
+
+/* ==============================
+   HERO ELEMENTS
+============================== */
+const heroEl = document.getElementById('hero');
+const heroRefs = heroEl ? {
+  name: heroEl.querySelector('[data-hero="name"]'),
+  level: heroEl.querySelector('[data-hero="level"]'),
+  xp: heroEl.querySelector('[data-hero="xp"]'),
+  weeklyAvg: heroEl.querySelector('[data-hero="weekly-avg"]'),
+  xpFill: heroEl.querySelector('[data-hero="xp-fill"]'),
+  xpLabel: heroEl.querySelector('[data-hero="xp-label"]')
+} : {};
 
 const LEVELS = [
   {lvl:1, need:100}, {lvl:2, need:250}, {lvl:3, need:500},
   {lvl:4, need:800}, {lvl:5, need:1200}, {lvl:6, need:1700},
-  {lvl:7, need:2300}, {lvl:8, need:3000}, {lvl:9, need:3800}
+  {lvl:7, need:2300}, {lvl:8, need:3000}, {lvl:9, need:3800},
 ];
-function lastLevelCfg(){ return LEVELS[LEVELS.length-1]; }
 
-function getLevelInfo(){
-  const p=getProfile();
-  const cfg = LEVELS.find(x=>x.lvl===p.level) || lastLevelCfg();
-  return {level:p.level, xp:p.xp, need:cfg.need||0};
+function calcTotalE(level, xp){
+  const lvl = Number(level) || 0;
+  const currentXP = Number(xp) || 0;
+  let total = currentXP;
+  for(const cfg of LEVELS){
+    if(cfg.lvl >= lvl) break;
+    total += Number(cfg.need) || 0;
+  }
+  return total;
 }
 
+function calcWeeklyAverageEGain(profile){
+  const currentProfile = (profile && typeof profile === 'object') ? profile : getProfile();
+  const hist = getHist();
+  if(!Array.isArray(hist) || hist.length < 6) return null;
+  const recent = hist.slice(-6).map((entry) => ({
+    ts: Number(entry && entry.ts) || 0,
+    total: calcTotalE(entry && entry.level, entry && entry.xp)
+  }));
+  if(recent.length < 6) return null;
+  const series = recent.concat({
+    ts: Date.now(),
+    total: calcTotalE(currentProfile && currentProfile.level, currentProfile && currentProfile.xp)
+  });
+  series.sort((a, b) => a.ts - b.ts);
+  let totalGain = 0;
+  for(let i = 1; i < series.length; i++) totalGain += series[i].total - series[i - 1].total;
+  return totalGain / 7;
+}
+
+/* ==============================
+   GENERIC HELPERS
+============================== */
+function load(key, def){ try{ return JSON.parse(localStorage.getItem(key)) ?? def }catch{ return def } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
+function getNotes(){ return localStorage.getItem(LS.NOTES) || ''; }
+function saveNotes(text){
+  const content = String(text || '');
+  if(content) localStorage.setItem(LS.NOTES, content);
+  else localStorage.removeItem(LS.NOTES);
+}
+function getSavedThemeBackgrounds(){
+  const raw = load(LS.THEME, {});
+  return { appBgUrl: raw?.appBgUrl || '', heroBgUrl: raw?.heroBgUrl || '' };
+}
+function updateSavedThemeBackgrounds(partial){
+  const current = getSavedThemeBackgrounds();
+  const next = Object.assign({}, current, partial);
+  save(LS.THEME, next);
+  return next;
+}
+
+// Zone E / Noise Store Helpers
+function getNoiseTaskKey(task){
+  if(!task || typeof task !== 'object') return null;
+  if(typeof task.recurringId === 'number') return `rec:${task.recurringId}`;
+  if(task.id != null) return `task:${task.id}`;
+  return null;
+}
+
+// Modified to store complex Zone E leveling data
+// Structure: { points: 1, streak: 0, progress: 0, threshold: 5 }
+function getZoneEStreakStore(){
+  return load(LS.ZONE_E_STREAKS, {});
+}
+function setZoneEStreakStore(store){
+  save(LS.ZONE_E_STREAKS, store);
+}
+function getNoiseStreakStore(){
+    return load(LS.NOISE_STREAKS, {});
+}
+function setNoiseStreakStore(store){
+    save(LS.NOISE_STREAKS, store);
+}
+
+function generateProfileId(){
+  const time = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2,10);
+  return `p-${time}-${rand}`;
+}
+function formatSignedNumber(n){ const val = Number(n)||0; return `${val>=0?'+':''}${val}`; }
+function todayDM(){
+  const d=new Date();
+  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function getLastRealDate(){ return localStorage.getItem(LS.REALDATE) || ''; }
+function setLastRealDate(val){ if(val) localStorage.setItem(LS.REALDATE, val); }
+function lastLevelCfg(){ return LEVELS[LEVELS.length-1]; }
+
+/* ==============================
+   SCORING LOGIC (NO AI)
+============================== */
+// Hardcoded scoring as requested
+function getTaskPoints(text, zoneKind) {
+  let pts = 1;
+  if (zoneKind === 'e') pts = 1;
+  else if (zoneKind === 'priority') pts = 3;
+  else if (zoneKind === 'noise') pts = -1;
+  else pts = 1; // regular
+  
+  // Return object compatible with old structure
+  return {
+      points: pts,
+      reason: 'Cố định',
+      category: 'fixed',
+      zone: ZONE_KIND_LABELS[zoneKind]
+  };
+}
+function normalizeAiScoreForZone(ai, zoneKind) {
+    return ai; // Pass through, no AI normalization needed
+}
+
+
+/* ==============================
+   PROFILE
+============================== */
+function getProfile(){
+  let p = load(LS.PROFILE);
+  if(!p || typeof p !== 'object' || Array.isArray(p)){
+    p = { id: generateProfileId(), name:'', level:1, xp:0 };
+    save(LS.PROFILE, p);
+  }
+  return p;
+}
+function setName(name){
+  const p=getProfile(); p.name=(name||'').trim(); save(LS.PROFILE,p);
+  renderHero();
+}
 function addXP(delta){
   const p=getProfile();
   p.xp = Math.max(0, Number(p.xp||0)+Number(delta||0));
@@ -273,94 +951,89 @@ function addXP(delta){
     const need = cfg.need || 0;
     if(need>0 && p.xp>=need){
       p.xp -= need;
-      const maxLvl = lastLevelCfg().lvl;
-      p.level = Math.min(maxLvl, p.level+1);
-    } else {
-      break;
-    }
+      p.level = Math.min(lastLevelCfg().lvl, p.level+1);
+    } else break;
   }
   save(LS.PROFILE,p);
   renderHero();
 }
-
-function setName(name){
-  const p=getProfile(); p.name=(name||'').trim(); save(LS.PROFILE,p);
+function getLevelInfo(){
+  const p=getProfile();
+  const cfg = LEVELS.find(x=>x.lvl===p.level) || lastLevelCfg();
+  return {level:p.level, xp:p.xp, need:cfg.need||0};
+}
+function resetPoints(){
+  const p=getProfile(); p.level=1; p.xp=0; save(LS.PROFILE,p);
   renderHero();
 }
-
-function getZoneEProgress(){
-  return load(LS.ZONE_E_PROGRESS, {});
-}
-
-function setZoneEProgress(data){
-  save(LS.ZONE_E_PROGRESS, data);
-}
-
-/* ==============================
-   LOGIC: POINTS & SCORING (FIXED)
-============================== */
-// Yêu cầu: E=1, Noise=-1, Priority=3, Regular=1
-function getTaskPoints(zoneKind, customPoints) {
-  // Nếu task đã có điểm custom (từ Zone E level up/noise penalty), dùng nó
-  if (typeof customPoints === 'number') return customPoints;
-
-  switch (zoneKind) {
-    case 'e': return 1;
-    case 'priority': return 3;
-    case 'noise': return -1;
-    case 'regular': return 1;
-    default: return 1;
-  }
+function ensureName(){
+  const p=getProfile();
+  if(!p.name){ const n=prompt('Nhập tên người chơi:'); if(n) setName(n); }
 }
 
 /* ==============================
    RENDER HERO
 ============================== */
-const heroEl = document.getElementById('hero');
-const heroRefs = heroEl ? {
-  name: heroEl.querySelector('[data-hero="name"]'),
-  level: heroEl.querySelector('[data-hero="level"]'),
-  xp: heroEl.querySelector('[data-hero="xp"]'),
-  xpFill: heroEl.querySelector('[data-hero="xp-fill"]'),
-  xpLabel: heroEl.querySelector('[data-hero="xp-label"]')
-} : {};
-
-(function syncAppMeta(){
-  document.title = APP_NAME;
-  const nameEl = document.querySelector('[data-app="title"]');
-  if(nameEl) nameEl.textContent = APP_NAME;
-  const versionEl = document.querySelector('[data-app="version"]');
-  if(versionEl) versionEl.textContent = `v${CONFIG.VERSION}`;
-})();
-
+function getBackgroundTheme(){
+  const base = CONFIG.BACKGROUND_THEME || {};
+  const saved = getSavedThemeBackgrounds();
+  const theme = Object.assign({}, base);
+  if(saved.appBgUrl) theme.appDefaultBgUrl = saved.appBgUrl;
+  theme.customHeroBgUrl = saved.heroBgUrl || '';
+  return theme;
+}
+function pickHeroBackgroundThemeFor(level){
+  const theme = getBackgroundTheme();
+  const list = theme.heroByLevel || [];
+  for(const item of list){
+    if(level>=item.minLevel && (!item.maxLevel || level<=item.maxLevel)) return item;
+  }
+  return list[list.length-1];
+}
 function renderHero(){
   if(!heroEl) return;
-  const p = getProfile();
+  const profile = getProfile();
   const {level,xp,need} = getLevelInfo();
-  const pct = need ? Math.min(100, Math.round(xp/need*100)) : 100;
-
-  // Background logic (Simplified)
-  let bg = 'linear-gradient(135deg,#8b7cff 0%,#b09bff 100%)';
-  if(level>=4 && level<=6) bg = 'linear-gradient(135deg,#bae6fd 0%,#2563eb 100%)';
-  if(level>=7) bg = 'linear-gradient(135deg,#e9d5ff 0%,#7c3aed 100%)';
+  const theme = getBackgroundTheme();
+  const preset = pickHeroBackgroundThemeFor(level) || {};
   
-  // Apply saved custom theme if any
-  const theme = load(LS.THEME, {});
-  if(theme.heroBgUrl) heroEl.style.backgroundImage = `url('${theme.heroBgUrl}')`;
-  else heroEl.style.backgroundImage = bg;
-
-  if(theme.appBgUrl) document.body.style.backgroundImage = `url('${theme.appBgUrl}')`;
-  else document.body.style.backgroundImage = '';
-
-  if(heroRefs.name) heroRefs.name.textContent = p.name || 'Player';
+  const heroBg = theme.customHeroBgUrl || preset.heroBgUrl || '';
+  const appBg = theme.appDefaultBgUrl || preset.appBgUrl || '';
+  
+  heroEl.style.backgroundImage = heroBg;
+  document.body.style.backgroundImage = appBg;
+  
+  const pct = need ? Math.min(100, Math.round(xp/need*100)) : 100;
+  const weeklyAvg = calcWeeklyAverageEGain(profile);
+  
+  if(heroRefs.name) heroRefs.name.textContent = profile.name || 'Player';
   if(heroRefs.level) heroRefs.level.textContent = `Level ${level}`;
   if(heroRefs.xp) heroRefs.xp.textContent = `${xp} E`;
-  if(heroRefs.xpLabel) heroRefs.xpLabel.textContent = need ? `${xp} / ${need} E` : 'Max';
+  if(heroRefs.weeklyAvg) heroRefs.weeklyAvg.textContent = weeklyAvg !== null ? `TB tuần: ${formatSignedNumber(weeklyAvg.toFixed(1))} E/ngày` : 'TB tuần: --';
+  if(heroRefs.xpLabel) heroRefs.xpLabel.textContent = need ? `${xp} / ${need} E tới level tiếp theo` : `${xp} E (tối đa)`;
   if(heroRefs.xpFill) heroRefs.xpFill.style.width = `${pct}%`;
 }
 
 /* ==============================
-   DATA MANAGEMENT
+   HISTORY & DAY
+============================== */
+function getHist(){ return load(LS.HIST,[]); }
+function setHist(h){ save(LS.HIST,h); }
+function pushHistSnapshot(){
+  const p=getProfile();
+  const h=getHist();
+  h.push({ ts:Date.now(), level:p.level, xp:p.xp });
+  if(h.length>60) h.splice(0, h.length-60);
+  setHist(h);
+}
+function getDay(){ return Number(localStorage.getItem(LS.DAY)||1); }
+function nextDay(){ localStorage.setItem(LS.DAY, getDay()+1); }
+function clearFlagsFor(day){
+  const f=load(LS.BONUS,{}); delete f[day]; save(LS.BONUS,f);
+}
+
+/* ==============================
+   ZONES / TASKS
 ============================== */
 function getZones(){
   let zones = load(LS.ZONES, []);
@@ -368,159 +1041,222 @@ function getZones(){
   return zones;
 }
 function setZones(z){ save(LS.ZONES,z) }
+function getRecurring(){ return load(LS.RECUR,[]) }
+function saveRecurring(r){ save(LS.RECUR,r) }
+
+async function addRecurring(r){
+  const rec = {...r, id: Date.now() + Math.floor(Math.random()*1000)};
+  // Fixed scoring logic
+  const z = getZones().find(z => z.id == rec.zoneId);
+  const pts = getTaskPoints(rec.text, z ? z.kind : 'regular');
+  rec.points = pts.points;
+  
+  const list = [...getRecurring(), rec];
+  saveRecurring(list);
+  return rec;
+}
+function delRecurring(id){
+  saveRecurring(getRecurring().filter(r=>r.id!==id));
+}
+
 function getTasks(){ return load(LS.TASKS, []) }
 function setTasks(t){ save(LS.TASKS, t) }
-function getRecurring(){ return load(LS.RECUR, []) }
-function saveRecurring(r){ save(LS.RECUR, r) }
 
 function isTaskActiveToday(t){ return t.kind==='recurring' || !t.done; }
-function doesTaskOccupyCapacity(t){ return true; } // Simplification
+function doesTaskOccupyCapacity(t){ return true; }
+function getZoneActiveTasks(tasks, zoneId){ return tasks.filter(t=>t.zoneId==zoneId && doesTaskOccupyCapacity(t)); }
+
+function renderTaskKindBadge(t, z){
+  const cls = t.kind==='recurring' ? (z.kind==='noise'?'task-kind recurring negative':'task-kind recurring') : 'task-kind single';
+  const txt = t.kind==='recurring' ? (z.kind==='noise'?'Hằng ngày (-)':'Hằng ngày') : 'Một lần';
+  return `<span class="${cls}">${txt}</span>`;
+}
+
+function renderTaskPoints(points, reason, options){
+   const sign = points >= 0 ? '+' : '';
+   const cls = points >= 0 ? 'positive' : 'negative';
+   const icon = options && options.icon ? `<span class="task-point-icon">${options.icon}</span>` : '';
+   return `<span class="task-points ${cls}" title="${options?.tooltip||''}">${icon}${sign}${points}</span>`;
+}
+
+function getTaskPointExtras(task, zoneKind, stores){
+    if(!task || !stores) return {};
+    const noiseStore = stores.noise || {};
+    const zoneEStore = stores.zoneE || {};
+    
+    if (zoneKind === 'e' && task.kind === 'recurring') {
+        const key = getNoiseTaskKey(task);
+        if (key && zoneEStore[key]) {
+            const d = zoneEStore[key];
+            const isCrown = d.points >= 7;
+            return {
+                icon: isCrown ? '👑' : '',
+                tooltip: `Streak: ${d.streak}, Progress: ${d.progress}/${d.threshold}`
+            };
+        }
+    }
+    if (zoneKind === 'noise' && task.kind === 'recurring') {
+        // Keep logic simple for noise visuals for now, handled in point calc
+        return { icon: '💀' };
+    }
+    return {};
+}
 
 /* ==============================
-   DAY LOGIC & ROLLOVER
+   ARCHIVE
 ============================== */
-function getDay(){ return Number(localStorage.getItem(LS.DAY)||1); }
-function nextDay(){ localStorage.setItem(LS.DAY, getDay()+1); }
+function isArchiveEligibleKind(kind){ return ARCHIVE_ZONE_KINDS.has(kind); }
+function archiveTaskCompletion(task, zone){
+  if(!task || !zone || !isArchiveEligibleKind(zone.kind)) return;
+  const text = String(task.text || '').trim();
+  const current = getArchive();
+  if(!current.some(i => normalizeArchiveText(i.text) === normalizeArchiveText(text))){
+     setArchive([...current, {text}]);
+  }
+}
+function removeTaskFromArchive(text){
+  const key = normalizeArchiveText(text);
+  setArchive(getArchive().filter(i => normalizeArchiveText(i.text) !== key));
+}
+
+/* ==============================
+   DAY ROLLOVER LOGIC (CRITICAL)
+============================== */
+function spawnRecurringIfNeeded(){
+  const mark = Number(localStorage.getItem(LS.SPAWN)||0);
+  if(mark===getDay()) return;
+
+  const weekday = new Date().getDay();
+  const recs = getRecurring();
+  const zones = getZones();
+  const tasks = getTasks();
+  const zoneEMap = getZoneEStreakStore(); // This now holds level info
+  const existingIds = new Set(tasks.filter(t=>t.kind==='recurring').map(t=>t.recurringId));
+
+  recs.forEach(r => {
+    if(r.type==='weekly' && (!r.days || !r.days.includes(weekday))) return;
+    if(existingIds.has(r.id)) return;
+
+    const z = zones.find(z=>z.id==r.zoneId);
+    if(!z) return;
+
+    // Determine points for new spawn
+    let pts = Number(r.points);
+    // For Zone E, pull current level points
+    if(z.kind === 'e') {
+        const key = `rec:${r.id}`;
+        if(zoneEMap[key]) pts = zoneEMap[key].points;
+        else pts = 1; // default
+    }
+    
+    tasks.push({
+        id: Date.now() + Math.random(),
+        text: r.text,
+        zoneId: r.zoneId,
+        done: false,
+        kind: 'recurring',
+        recurringId: r.id,
+        points: pts,
+        aiReason: r.reason
+    });
+  });
+
+  setTasks(tasks);
+  localStorage.setItem(LS.SPAWN, String(getDay()));
+}
 
 function performDayRollover(){
   const zones = getZones();
   const tasks = getTasks();
   const recs = getRecurring();
-  const zoneEMap = getZoneEProgress();
-  const nextZoneEMap = { ...zoneEMap };
+  const zoneEMap = getZoneEStreakStore();
+  const nextZoneEMap = {...zoneEMap};
   const zoneKindMap = new Map(zones.map(z => [z.id, z.kind]));
 
-  // 1. Apply Penalty (-7 for day rollover)
+  // 1. Penalty -7E
   addXP(-7);
 
-  // 2. Zone E Bonus Logic (Daily Completion Bonus)
+  // 2. Daily Zone E Bonus (>3 tasks)
   const todayTasks = tasks.filter(t => t.done);
-  const completedZoneECount = todayTasks.reduce((c, t) => zoneKindMap.get(t.zoneId) === 'e' ? c + 1 : c, 0);
-  if (completedZoneECount > 3) {
-    // Bonus 3-5 points
-    const bonus = Math.min(5, Math.max(3, completedZoneECount));
-    addXP(bonus);
-  }
+  const countE = todayTasks.filter(t => zoneKindMap.get(t.zoneId) === 'e').length;
+  if(countE > 3) addXP(Math.min(5, Math.max(3, countE)));
 
-  // 3. Complex Progression Logic for Zone E Recurring Tasks
-  // Iterate through all recurring definitions
-  recs.forEach(rec => {
-    const zKind = zoneKindMap.get(rec.zoneId);
-    if (zKind !== 'e') return;
-
-    const recKey = `rec:${rec.id}`;
-    let data = nextZoneEMap[recKey] || { 
-      points: 1, 
-      streak: 0, 
-      progress: 0, // Task count towards next level
-      threshold: 5 
-    };
-
-    // Check if task was done today
-    // Find the spawned task for this recurring ID
-    const spawnedTask = tasks.find(t => t.kind === 'recurring' && t.recurringId === rec.id);
-    const isDone = spawnedTask && spawnedTask.done;
-
-    if (isDone) {
-      data.streak++;
+  // 3. Advanced Zone E Leveling Logic
+  // Iterate all Zone E recurring definitions
+  recs.forEach(r => {
+      if(zoneKindMap.get(r.zoneId) !== 'e') return;
+      const key = `rec:${r.id}`;
+      // Initialize if missing
+      if(!nextZoneEMap[key]) nextZoneEMap[key] = { points: 1, streak: 0, progress: 0, threshold: 5 };
       
-      // Logic: Only gain permanent level progress if points < 7
-      if (data.points < 7) {
-        data.progress++;
-        if (data.progress >= data.threshold) {
-          // LEVEL UP!
-          data.points++;
-          data.progress = 0;
-          // Formula: Previous * 1.2 rounded up
-          data.threshold = Math.ceil(data.threshold * 1.2);
-        }
-      }
-      
-    } else {
-      // Missed the day
-      if (data.points >= 7) {
-        // Crown penalty: Drop 1 level
-        data.points--;
-        // Reset threshold logic? Let's keep it simple, just drop point.
-        // Re-calculate threshold for the new lower level? 
-        // Reverse engineering 7->6: 
-        // 1->2 (5), 2->3 (6), 3->4 (8), 4->5 (10), 5->6 (12), 6->7 (15)
-        // Just resetting progress is safer.
-        data.progress = 0; 
-        // Approximate threshold restore (not perfect but functional)
-        data.threshold = Math.floor(data.threshold / 1.2) || 5; 
+      const d = nextZoneEMap[key];
+      // Check if performed today
+      const performed = todayTasks.some(t => t.recurringId === r.id);
+
+      if(performed) {
+          d.streak++;
+          // Level up logic only if < 7 (Crown)
+          if(d.points < 7) {
+              d.progress++;
+              if(d.progress >= d.threshold) {
+                  d.points++; // Level up
+                  d.progress = 0;
+                  d.threshold = Math.ceil(d.threshold * 1.2); // Harder next time
+              }
+          }
       } else {
-        // Pre-crown penalty: Reset to 1
-        data.points = 1;
-        data.streak = 0;
-        data.progress = 0;
-        data.threshold = 5;
+          // Missed day logic
+          if(d.points >= 7) {
+              // Has crown -> drop 1 level
+              d.points--;
+              d.progress = 0;
+              d.threshold = Math.floor(d.threshold / 1.2) || 5; // Approximate step down
+          } else {
+              // No crown -> reset to 1
+              d.points = 1;
+              d.progress = 0;
+              d.threshold = 5;
+              d.streak = 0;
+          }
       }
-    }
-
-    nextZoneEMap[recKey] = data;
   });
-  setZoneEProgress(nextZoneEMap);
+  setZoneEStreakStore(nextZoneEMap);
 
-  // 4. Zone Noise Logic (Accumulating Penalty)
-  // Noise accumulates -1 for every day done. 
-  // However, the requirement says "Zone Noise only removable at -1". 
-  // We need to increase penalty if they keep doing it.
-  recs.forEach(rec => {
-    if (zoneKindMap.get(rec.zoneId) !== 'noise') return;
-    
-    const spawnedTask = tasks.find(t => t.kind === 'recurring' && t.recurringId === rec.id);
-    if (spawnedTask && spawnedTask.done) {
-       // Increase penalty (more negative)
-       // Current logic: rec.points starts at -1.
-       // If done today, points = points - 1;
-       // But we need to store this statefully. 
-       // Let's use the task's points directly for next spawn.
-       rec.points = (rec.points || -1) - 1; 
-    }
+  // 4. Zone Noise Logic (Accumulate penalty if done)
+  // Requirement: If done, points become more negative? The prompt implies -1 is base.
+  // The user said: "Noise only delete at -1". "Can't delete at -2". 
+  // We assume doing it *increases* penalty (makes it -2, -3). 
+  // Let's check if any Noise task was done and decrement its recurring base points.
+  recs.forEach(r => {
+      if(zoneKindMap.get(r.zoneId) !== 'noise') return;
+      const performed = todayTasks.some(t => t.recurringId === r.id);
+      if(performed) {
+          // If done, subtract 1 from points (e.g. -1 -> -2)
+          r.points = (r.points || -1) - 1; 
+      }
   });
   saveRecurring(recs);
 
-  // 5. Spawn New Tasks
+  // 5. Cleanup and Next Day
+  pushHistSnapshot();
+  clearFlagsFor(getDay());
   nextDay();
-  const nextTasks = tasks.filter(t => t.kind === 'single' && !t.done); // Keep unfinished singles
   
-  // Spawn recurring
-  const dayIndex = new Date().getDay(); // 0=Sun
-  recs.forEach(r => {
-    if(r.type==='weekly' && (!r.days || !r.days.includes(dayIndex))) return;
-    
-    // Calculate points for the new spawn
-    let p = 0;
-    const zKind = zoneKindMap.get(r.zoneId);
-    
-    if (zKind === 'e') {
-       const data = nextZoneEMap[`rec:${r.id}`];
-       p = data ? data.points : 1;
-    } else if (zKind === 'noise') {
-       p = r.points || -1; // Use stored penalty
-    } else {
-       p = getTaskPoints(zKind);
-    }
-
-    nextTasks.push({
-      id: Date.now() + Math.random(),
-      text: r.text,
-      zoneId: r.zoneId,
-      done: false,
-      kind: 'recurring',
-      recurringId: r.id,
-      points: p
-    });
-  });
-
-  setTasks(nextTasks);
-  render('settings'); // Re-render settings to update view
-  alert('Đã qua ngày mới! (-7 E phí sinh hoạt)');
+  // Remove done recurring tasks, keep undone single tasks
+  const remaining = tasks.filter(t => t.kind === 'single' && !t.done);
+  setTasks(remaining);
+  
+  localStorage.removeItem(LS.SPAWN);
+  spawnRecurringIfNeeded();
+  setLastRealDate(todayDM());
+  
+  renderHero();
+  render('settings');
+  alert('Đã qua ngày mới! Bạn bị trừ 7 E phí sinh hoạt.');
 }
 
 /* ==============================
-   UI RENDERING
+   VIEWS
 ============================== */
 const view = document.getElementById('view');
 const tabsBar = document.getElementById('tabsBar');
@@ -529,305 +1265,293 @@ let currentTab = 'tasks';
 function buildTabsBar(active){
   tabsBar.innerHTML = [
     {id:'tasks', label:'Nhiệm vụ', icon:'✅'},
-    {id:'settings', label:'Cài đặt', icon:'⚙️'}
+    {id:'archive', label:'Lưu trữ', icon:'🗂️'},
+    {id:'stats', label:'Biểu đồ', icon:'📈'},
+    {id:'notes', label:'Ghi chú', icon:'📝'},
+    {id:'settings', label:'Settings', icon:'⚙️'}
   ].map(t=>`
     <button class="tab-btn ${t.id===active?'active':''}" onclick="render('${t.id}')">
-      ${t.icon} ${t.label}
+      ${t.icon}
     </button>
   `).join('');
 }
 
-/* --- VIEW: TASKS --- */
+/* TASKS VIEW */
 function viewTasks(){
-  const zones = getZones();
-  const tasks = getTasks();
-  const zoneEMap = getZoneEProgress();
-  const dateNow = new Date().toLocaleDateString('vi-VN');
+  spawnRecurringIfNeeded();
+  let zones=getZones();
+  const tasks=getTasks();
+  const zoneEMap = getZoneEStreakStore();
   
-  // Group tasks by zone
-  const groups = zones.map(z => {
-    return {
-      z,
-      list: tasks.filter(t => t.zoneId == z.id)
-    };
+  // Ensure Priority Zone exists
+  if (!zones.some(z => z.kind === 'priority')) {
+     zones.push({id: Date.now(), name: 'Zone Quan trọng', kind: 'priority', bg: ''});
+     setZones(zones);
+  }
+
+  const groups = zones.map(z=>{
+    const list = tasks.filter(t=>t.zoneId==z.id);
+    return { z, list, count: list.length, done: list.filter(t=>t.done).length };
   });
 
   view.innerHTML = `
-    <div class="top">
-      <span class="pill">Ngày mô phỏng: <b>${getDay()}</b></span>
-      <span class="pill">Thực tế: <b>${dateNow}</b></span>
-    </div>
-
+    <div class="top"><span class="pill">Ngày: <b>${todayDM()}</b></span></div>
     <div class="creator">
-      <input id="taskText" placeholder="Nhập nhiệm vụ mới...">
+      <input id="taskText" placeholder="Thêm nhiệm vụ… (Enter)">
       <select id="taskZone">${zones.map(z=>`<option value="${z.id}">${z.name}</option>`).join('')}</select>
       <button class="btn-primary" id="btnAdd">Thêm</button>
     </div>
+    ${groups.map(g=>{
+        const listHtml = g.list.map(t=>{
+            let subHtml = '';
+            // Zone E Display
+            if(g.z.kind === 'e' && t.kind === 'recurring') {
+                const key = `rec:${t.recurringId}`;
+                if(zoneEMap[key]) {
+                    const d = zoneEMap[key];
+                    const isCrown = d.points >= 7;
+                    subHtml = `
+                    <div class="task-streak-line">
+                        <span class="streak-tag ${isCrown?'crown':''}">${isCrown?'👑':''} Streak: ${d.streak} ngày</span>
+                        ${!isCrown ? `<span class="muted" style="font-size:11px;margin-left:4px">(${d.progress}/${d.threshold} để +1 E)</span>` : ''}
+                    </div>`;
+                }
+            }
+            // Zone Noise Display
+            if(g.z.kind === 'noise' && t.points < -1) {
+                 subHtml = `<div class="task-streak-line"><span class="streak-tag danger">💀 Phạt: ${t.points} E</span></div>`;
+            }
 
-    ${groups.map(g => {
-      if(!g.list.length) return ''; // Hide empty zones to clean up UI? Or keep them. Let's keep.
-      
-      const listHtml = g.list.map(t => {
-        // Zone E Info
-        let subHtml = '';
-        if (g.z.kind === 'e' && t.kind === 'recurring') {
-           const data = zoneEMap[`rec:${t.recurringId}`];
-           if (data) {
-             const isCrown = data.points >= 7;
-             subHtml = `
-               <div class="task-streak-line">
-                 ${isCrown ? '<span class="streak-tag crown">👑 Vua lì đòn</span>' : ''}
-                 <span class="streak-tag">Streak: ${data.streak} ngày</span>
-                 ${!isCrown ? `<span class="muted" style="font-size:11px;margin-left:4px">(${data.progress}/${data.threshold} để +1 E)</span>` : ''}
-               </div>
-             `;
-           }
-        }
-        // Zone Noise Info
-        if (g.z.kind === 'noise' && t.points < -1) {
-             subHtml = `
-               <div class="task-streak-line">
-                 <span class="streak-tag danger">💀 Phạt nặng: ${t.points} E</span>
-               </div>
-             `;
-        }
-
-        return `
-          <li class="task ${t.done?'done':''}" data-id="${t.id}">
-            <div class="task-inner">
-              <div class="left">
-                <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id}, this.checked)">
-                <div class="task-info-group">
-                  <div class="task-top-line">
-                    <span class="txt">${t.text}</span>
-                    ${renderTaskKindBadge(t, g.z)}
-                    <span class="task-points ${t.points>=0?'positive':'negative'}">
-                      ${t.points>0?'+':''}${t.points}
-                    </span>
-                  </div>
-                  ${subHtml}
+            return `
+            <li class="task ${t.done?'done':''}" data-id="${t.id}">
+                <div class="task-inner">
+                    <div class="left">
+                        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id},this.checked)">
+                        <div class="task-info-group">
+                            <div class="task-top-line">
+                                <span class="txt">${t.text}</span>
+                                ${renderTaskKindBadge(t, g.z)}
+                                <span class="task-points ${t.points>=0?'positive':'negative'}">${t.points>0?'+':''}${t.points}</span>
+                            </div>
+                            ${subHtml}
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-            <button class="del-btn" onclick="deleteTask(${t.id}, '${g.z.kind}', ${t.points})">×</button>
-          </li>
-        `;
-      }).join('');
-
-      return `
+                <button class="del-btn" onclick="deleteTask(${t.id}, '${g.z.kind}', ${t.points})">×</button>
+            </li>`;
+        }).join('');
+        
+        const headerStyle = g.z.bg ? `background-image:linear-gradient(0deg,rgba(0,0,0,.5),rgba(0,0,0,.15)),url('${g.z.bg}');color:#fff` : '';
+        return `
         <section class="zone">
-          <header>
-            <div><b>${g.z.name}</b></div>
-          </header>
-          <ul>${listHtml || '<li class="task"><div class="task-inner muted">Trống</div></li>'}</ul>
-        </section>
-      `;
+            <header class="${g.z.bg?'imgHead':''}" style="${headerStyle}">
+                <div><b>${g.z.name}</b></div>
+                <div class="badge">${g.done}/${g.count}</div>
+            </header>
+            <ul>${listHtml || '<li class="task"><div class="task-inner muted">Chưa có task</div></li>'}</ul>
+        </section>`;
     }).join('')}
   `;
-
-  // Swipe logic setup
-  attachSwipeHandlers();
-
-  // Bind Add
+  
   document.getElementById('btnAdd').onclick = addTask;
-  document.getElementById('taskText').onkeydown = (e) => e.key==='Enter' && addTask();
+  document.getElementById('taskText').onkeydown = e => e.key==='Enter' && addTask();
+  attachSwipeHandlers();
 }
 
-function renderTaskKindBadge(t, z){
-  if(t.kind==='recurring') return `<span class="task-kind recurring">Lặp lại</span>`;
-  return `<span class="task-kind single">Một lần</span>`;
-}
+async function addTask(){
+    const txt = document.getElementById('taskText').value.trim();
+    const zid = Number(document.getElementById('taskZone').value);
+    if(!txt) return;
+    
+    const zones = getZones();
+    const z = zones.find(x=>x.id===zid);
+    const tasks = getTasks();
 
-function addTask(){
-  const txt = document.getElementById('taskText').value.trim();
-  const zid = Number(document.getElementById('taskZone').value);
-  if(!txt) return;
+    // Constraints
+    const activeInZone = getZoneActiveTasks(tasks, zid).length;
+    if(z.kind === 'e') {
+        const limit = getProfile().level >= 2 ? 6 : 5;
+        if(activeInZone >= limit) return alert(`Zone E giới hạn ${limit} task/ngày.`);
+    }
+    if(z.kind === 'priority' && activeInZone >= 3) return alert('Zone Quan trọng tối đa 3 task.');
 
-  const zones = getZones();
-  const z = zones.find(x=>x.id===zid);
-  
-  // Points logic
-  let pts = getTaskPoints(z.kind);
-  
-  const newTask = {
-    id: Date.now(),
-    text: txt,
-    zoneId: zid,
-    done: false,
-    kind: 'single',
-    points: pts
-  };
+    const pts = getTaskPoints(txt, z.kind);
+    const newTask = {
+        id: Date.now(),
+        text: txt,
+        zoneId: zid,
+        done: false,
+        kind: 'single',
+        points: pts.points
+    };
 
-  // If adding to daily zone (E or Noise), prompt for recurring? 
-  // Simplification: Default single. User can add recurring in Settings.
-  // Or auto-convert for this demo:
-  if (z.kind === 'e' || z.kind === 'noise') {
-     // For this specific request logic to work (Zone E leveling), it implies recurring.
-     // Let's auto-create a recurring definition for E/Noise added from main screen
-     const recId = Date.now();
-     const recs = getRecurring();
-     recs.push({
-       id: recId,
-       text: txt,
-       zoneId: zid,
-       type: 'daily',
-       points: pts
-     });
-     saveRecurring(recs);
-     newTask.kind = 'recurring';
-     newTask.recurringId = recId;
-  }
+    // Auto-create recurring for E/Noise to support logic
+    if (z.kind === 'e' || z.kind === 'noise') {
+         const recId = Date.now();
+         const recs = getRecurring();
+         recs.push({
+           id: recId,
+           text: txt,
+           zoneId: zid,
+           type: 'daily',
+           points: pts.points
+         });
+         saveRecurring(recs);
+         newTask.kind = 'recurring';
+         newTask.recurringId = recId;
+    }
 
-  const tasks = getTasks();
-  tasks.push(newTask);
-  setTasks(tasks);
-  document.getElementById('taskText').value = '';
-  viewTasks();
+    tasks.push(newTask);
+    setTasks(tasks);
+    viewTasks();
 }
 
 function toggleTask(id, checked){
-  const tasks = getTasks();
-  const t = tasks.find(x=>x.id===id);
-  if(!t) return;
-  
-  t.done = checked;
-  addXP(checked ? t.points : -t.points);
-  setTasks(tasks);
-  viewTasks();
-}
-
-// LOGIC XÓA NOISE QUAN TRỌNG Ở ĐÂY
-function deleteTask(id, zoneKind, currentPoints){
-  if (zoneKind === 'noise' && currentPoints < -1) {
-    // Logic: Không cho xóa, buộc reset về -1
-    if(confirm(`Task này đang bị phạt nặng (${currentPoints} điểm). Bạn có muốn reset về -1 điểm để xóa sau không?`)){
-      const tasks = getTasks();
-      const t = tasks.find(x=>x.id===id);
-      if(t) {
-        t.points = -1;
-        // Update recurring definition too
-        if(t.recurringId){
-          const recs = getRecurring();
-          const r = recs.find(x=>x.id===t.recurringId);
-          if(r) r.points = -1;
-          saveRecurring(recs);
-        }
+    const tasks = getTasks();
+    const t = tasks.find(x=>x.id===id);
+    if(t){
+        t.done = checked;
+        addXP(checked ? t.points : -t.points);
         setTasks(tasks);
+        const z = getZones().find(z=>z.id==t.zoneId);
+        if(checked && isArchiveEligibleKind(z.kind)) archiveTaskCompletion(t, z);
+        if(!checked) removeTaskFromArchive(t.text);
         viewTasks();
-      }
     }
-    return;
-  }
-
-  // Normal delete
-  const tasks = getTasks();
-  const t = tasks.find(x=>x.id===id);
-  if(t && t.recurringId){
-     // Also remove recurring def? Yes for simple UX
-     const recs = getRecurring().filter(r=>r.id!==t.recurringId);
-     saveRecurring(recs);
-  }
-  setTasks(tasks.filter(x=>x.id!==id));
-  viewTasks();
 }
 
-/* --- VIEW: SETTINGS --- */
-function viewSettings(){
-  const p = getProfile();
-  view.innerHTML = `
+function deleteTask(id, zoneKind, pts){
+    // Noise deletion logic
+    if(zoneKind === 'noise' && pts < -1) {
+        if(confirm(`Task này đang bị phạt ${pts} điểm. Bạn có muốn Reset về -1 để xóa không?`)){
+             const tasks = getTasks();
+             const t = tasks.find(x=>x.id===id);
+             if(t) {
+                 t.points = -1;
+                 if(t.recurringId) {
+                     const recs = getRecurring();
+                     const r = recs.find(x=>x.id==t.recurringId);
+                     if(r) r.points = -1;
+                     saveRecurring(recs);
+                 }
+                 setTasks(tasks);
+                 viewTasks();
+             }
+        }
+        return;
+    }
+    
+    const tasks = getTasks();
+    const t = tasks.find(x=>x.id===id);
+    if(t && t.recurringId) delRecurring(t.recurringId);
+    setTasks(tasks.filter(x=>x.id!==id));
+    viewTasks();
+}
+
+/* OTHER VIEWS */
+function viewArchive(){
+    const list = getArchive();
+    view.innerHTML = `
     <div class="card" style="margin-top:0">
-      <h3>Điều khiển Ngày</h3>
-      <div class="muted" style="margin-bottom:10px">Nút điều khiển đã được hiện lại.</div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
-        <button class="btn-primary" onclick="performDayRollover()">Qua ngày mới</button>
-        <button class="btn-danger" onclick="if(confirm('Reset Level về 1?')) { resetPoints(); }">Reset điểm</button>
+        <h3>Lưu trữ</h3>
+        <button class="btn-danger btn-sm" onclick="if(confirm('Xóa hết?')) { setArchive([]); render('archive'); }">Xóa hết</button>
+        <ul class="archive-list" style="margin-top:10px">
+            ${list.map(i=>`<li class="archive-item">${i.text}</li>`).join('')}
+        </ul>
+    </div>`;
+}
+
+function viewStats(){
+    const hist = getHist();
+    const data = hist.slice(-7).map(h => calcTotalE(h.level, h.xp));
+    view.innerHTML = `
+    <div class="card chart-card" style="margin-top:0">
+      <h3>Biểu đồ E (7 ngày)</h3>
+      <canvas id="chart7"></canvas>
+    </div>`;
+    setTimeout(() => drawChart('chart7', data), 100);
+}
+
+function viewNotes(){
+    view.innerHTML = `
+    <div class="card" style="margin-top:0">
+      <h3>Ghi chú</h3>
+      <textarea id="notesEditor" class="notes-editor" oninput="saveNotes(this.value)">${getNotes()}</textarea>
+    </div>`;
+}
+
+function viewSettings(){
+    const p = getProfile();
+    view.innerHTML = `
+    <div class="card" style="margin-top:0">
+      <h3>Điều khiển</h3>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <button class="btn-primary" onclick="performDayRollover()">Qua ngày</button>
+        <button class="btn-danger" onclick="if(confirm('Reset?')) resetPoints()">Reset điểm</button>
       </div>
     </div>
-
     <div class="card">
       <h3>Hồ sơ</h3>
       <div class="row">
         <div>Tên</div>
-        <input id="nameInput" value="${p.name}" onchange="setName(this.value)">
+        <input value="${p.name}" onchange="setName(this.value)">
       </div>
     </div>
-
     <div class="card">
-       <h3>Thêm Task Lặp (Tùy chỉnh)</h3>
-       <div class="creator" style="flex-direction:column;align-items:stretch">
-         <input id="rText" placeholder="Tên task lặp...">
-         <select id="rZone">${getZones().map(z=>`<option value="${z.id}">${z.name}</option>`).join('')}</select>
-         <button class="btn-ghost" onclick="addRecManual()">Thêm</button>
-       </div>
-    </div>
-  `;
+       <h3>Upload Nền</h3>
+       <input type="file" onchange="uploadBg(this, 'app')">
+    </div>`;
 }
 
-function resetPoints(){
-  const p = getProfile();
-  p.level = 1; p.xp = 0;
-  save(LS.PROFILE, p);
-  renderHero();
+function uploadBg(inp, type){
+    const f = inp.files[0];
+    if(f) {
+        const r = new FileReader();
+        r.onload = e => {
+            updateSavedThemeBackgrounds(type==='app'?{appBgUrl:e.target.result}:{heroBgUrl:e.target.result});
+            renderHero();
+        };
+        r.readAsDataURL(f);
+    }
 }
 
-function addRecManual(){
-  const txt = document.getElementById('rText').value;
-  const zid = Number(document.getElementById('rZone').value);
-  if(!txt) return;
-  const zones = getZones();
-  const z = zones.find(x=>x.id===zid);
-  const recs = getRecurring();
-  recs.push({
-    id: Date.now(),
-    text: txt,
-    zoneId: zid,
-    type: 'daily',
-    points: getTaskPoints(z.kind)
-  });
-  saveRecurring(recs);
-  alert('Đã thêm task lặp');
+/* CHART DRAWING (Mini version) */
+function drawChart(id, vals){
+  const cvs=document.getElementById(id); if(!cvs) return;
+  const ctx=cvs.getContext('2d');
+  const w=cvs.clientWidth, h=cvs.clientHeight;
+  cvs.width=w; cvs.height=h;
+  if(!vals.length) return;
+  const min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
+  const pts = vals.map((v,i)=>({x: 20+(w-40)*(i/(vals.length-1||1)), y: h-20-(h-40)*((v-min)/span)}));
+  ctx.strokeStyle='#8b7cff'; ctx.lineWidth=3; ctx.beginPath();
+  pts.forEach((p,i)=>i==0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke();
+  pts.forEach(p=>{ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,6.28); ctx.fill(); ctx.stroke(); });
 }
 
-/* ==============================
-   SWIPE HANDLER (Touch)
-============================== */
+/* TOUCH SWIPE */
 function attachSwipeHandlers(){
-  document.querySelectorAll('li.task').forEach(li => {
-    const delBtn = li.querySelector('.del-btn');
-    let startX, currentX;
-    let isDown = false;
-    
-    li.addEventListener('touchstart', e => {
-      startX = e.touches[0].clientX;
-      isDown = true;
+    document.querySelectorAll('li.task').forEach(li=>{
+        let sx=0;
+        li.addEventListener('touchstart',e=>sx=e.touches[0].clientX);
+        li.addEventListener('touchmove',e=>{
+            if(e.touches[0].clientX - sx < -40) li.classList.add('show-del');
+            if(e.touches[0].clientX - sx > 40) li.classList.remove('show-del');
+        });
+        li.querySelector('.task-inner').onclick=()=>li.classList.remove('show-del');
     });
-    
-    li.addEventListener('touchmove', e => {
-      if(!isDown) return;
-      currentX = e.touches[0].clientX;
-      const diff = currentX - startX;
-      if (diff < -30) li.classList.add('show-del');
-      if (diff > 30) li.classList.remove('show-del');
-    });
-    
-    li.addEventListener('touchend', () => isDown = false);
-    
-    // Click outside to close
-    li.querySelector('.task-inner').onclick = () => {
-      if(li.classList.contains('show-del')) li.classList.remove('show-del');
-    };
-  });
 }
 
-/* ==============================
-   ROUTER & INIT
-============================== */
 function render(tab){
-  currentTab = tab;
-  buildTabsBar(tab);
-  renderHero();
-  if(tab === 'tasks') viewTasks();
-  else if(tab === 'settings') viewSettings();
+    currentTab = tab;
+    buildTabsBar(tab);
+    renderHero();
+    if(tab==='tasks') viewTasks();
+    else if(tab==='archive') viewArchive();
+    else if(tab==='stats') viewStats();
+    else if(tab==='notes') viewNotes();
+    else if(tab==='settings') viewSettings();
 }
 
 // Init
