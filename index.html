@@ -129,10 +129,17 @@ h1 .app-version{
 .hero-progress-fill{
   height:100%;
   width:0;
-  background:linear-gradient(90deg,#ffe7a1 0%,#ffc857 100%);
+  background:linear-gradient(90deg,#ff8ba7 0%,#ffd166 25%,#7ed957 50%,#5edfff 75%,#b794f4 100%);
+  background-size:200% 100%;
   box-shadow:0 10px 24px rgba(0,0,0,.18);
   border-radius:999px;
   transition:width .6s ease;
+  animation:xpRainbow 4s linear infinite;
+}
+
+@keyframes xpRainbow{
+  0%{background-position:0% 50%;}
+  100%{background-position:200% 50%;}
 }
 
 /* Tabs bar */
@@ -3160,23 +3167,6 @@ async function viewTasks(){
           }).join('')
         : emptyStateHtml;
 
-      let streakInfoHtml = '';
-      if(z.kind === 'noise'){
-        const streakDetails = [];
-        g.list
-          .filter(task => task.kind === 'recurring')
-          .forEach(task => {
-            const key = getNoiseTaskKey(task);
-            if(!key) return;
-            const entry = noiseStore[key];
-            if(!entry) return;
-            const streakValue = parseNoiseStreak(entry.streak);
-            if(streakValue <= 0) return;
-            streakDetails.push(`<div class="muted">${task.text}: ${streakValue} ngày</div>`);
-          });
-        streakInfoHtml = streakDetails.join('');
-      }
-
       return `
       <section class="zone">
         <header class="${headerClass}" style="${headerStyle}">
@@ -3186,7 +3176,6 @@ async function viewTasks(){
         <ul>
           ${listHtml}
         </ul>
-        ${streakInfoHtml}
       </section>`;
     }).join('')}
   `;
