@@ -803,6 +803,37 @@ const LS = {
   NOTES:'tq_notes'
 };
 
+const EXPORT_KEY_MAP = {
+  PROFILE: LS.PROFILE,
+  ZONES: LS.ZONES,
+  TASKS: LS.TASKS,
+  RECUR: LS.RECUR,
+  DAY: LS.DAY,
+  BONUS: LS.BONUS,
+  SPAWN: LS.SPAWN,
+  LBCACHE: LS.LBCACHE,
+  HIST: LS.HIST,
+  REALDATE: LS.REALDATE,
+  ARCHIVE: LS.ARCHIVE,
+  ZONE_E_BONUS_DAY: LS.ZONE_E_BONUS_DAY,
+  NOISE_STREAKS: LS.NOISE_STREAKS,
+  THEME: LS.THEME,
+  ZONE_E_STREAKS: LS.ZONE_E_STREAKS,
+  NOTES: LS.NOTES
+};
+
+const STRING_STORAGE_KEYS = new Set([
+  LS.DAY,
+  LS.SPAWN,
+  LS.REALDATE,
+  LS.ZONE_E_BONUS_DAY,
+  LS.NOTES
+]);
+
+const JSON_STORAGE_KEYS = new Set(
+  Object.values(EXPORT_KEY_MAP).filter(k => !STRING_STORAGE_KEYS.has(k))
+);
+
 function normalizeArchiveText(raw){
   const text = String(raw || '').trim();
   if(!text) return '';
@@ -965,6 +996,126 @@ function calcWeeklyAverageEGain(profile){
 ============================== */
 function load(key, def){ try{ return JSON.parse(localStorage.getItem(key)) ?? def }catch{ return def } }
 function save(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
+
+function exportAllData(){
+  const data = {};
+  for(const [field, storageKey] of Object.entries(EXPORT_KEY_MAP)){
+    if(STRING_STORAGE_KEYS.has(storageKey)){
+      data[field] = localStorage.getItem(storageKey) || '';
+    }else{
+      data[field] = load(storageKey, null);
+    }
+  }
+
+  const payload = {
+    version: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `testquest-data-${Date.now()}.json`;
+  a.click();
+  setTimeout(()=> URL.revokeObjectURL(url), 500);
+}
+
+async function importAllData(file){
+  if(!file){
+    alert('Chọn file JSON để import.');
+    return;
+  }
+
+  let content = '';
+  try{
+    content = await new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result || '');
+      reader.onerror = ()=> reject(reader.error || new Error('Không đọc được file.'));
+      reader.readAsText(file);
+    });
+  }catch(err){
+    console.error(err);
+    alert('Không thể đọc file. Vui lòng thử lại.');
+    return;
+  }
+
+  const clean = String(content || '').trim();
+  if(!clean){
+    alert('File trống hoặc không chứa dữ liệu.');
+    return;
+  }
+
+  let parsed;
+  try{
+    parsed = JSON.parse(clean);
+  }catch(err){
+    console.error(err);
+    alert('File không phải JSON hợp lệ.');
+    return;
+  }
+
+  if(!parsed || typeof parsed !== 'object'){
+    alert('Cấu trúc file không hợp lệ.');
+    return;
+  }
+
+  const data = parsed.data;
+  if(!data || typeof data !== 'object'){
+    alert('File thiếu trường dữ liệu cần import.');
+    return;
+  }
+
+  for(const field of Object.keys(EXPORT_KEY_MAP)){
+    if(!(field in data)){
+      alert(`Thiếu trường ${field} trong file.`);
+      return;
+    }
+  }
+
+  const normalized = {};
+  for(const [field, storageKey] of Object.entries(EXPORT_KEY_MAP)){
+    const value = data[field];
+    if(STRING_STORAGE_KEYS.has(storageKey)){
+      if(value == null){
+        normalized[storageKey] = '';
+      }else if(typeof value !== 'string'){
+        alert(`Trường ${field} phải là chuỗi.`);
+        return;
+      }else{
+        normalized[storageKey] = value;
+      }
+      continue;
+    }
+
+    if(value !== null && typeof value !== 'object'){
+      alert(`Trường ${field} phải là object/array hoặc null.`);
+      return;
+    }
+    normalized[storageKey] = value;
+  }
+
+  if(!confirm('Ghi đè toàn bộ dữ liệu cục bộ bằng file này?')){
+    return;
+  }
+
+  for(const [storageKey, value] of Object.entries(normalized)){
+    if(value === null || value === undefined || value === ''){
+      localStorage.removeItem(storageKey);
+      continue;
+    }
+    if(STRING_STORAGE_KEYS.has(storageKey)){
+      localStorage.setItem(storageKey, value);
+    }else{
+      save(storageKey, value);
+    }
+  }
+
+  renderHero();
+  render('settings');
+}
 
 function getNotes(){
   return localStorage.getItem(LS.NOTES) || '';
@@ -3727,6 +3878,19 @@ function viewSettings(){
       </div>
     </div>
 
+    <div class="card">
+      <h3>Quản trị / Sao lưu dữ liệu</h3>
+      <div class="row">
+        <div>Sao lưu & khôi phục</div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:center">
+          <button class="btn-primary" id="exportDataBtn">Lưu dữ liệu</button>
+          <button class="btn-ghost" id="importDataBtn">Load dữ liệu</button>
+        </div>
+      </div>
+      <input id="importDataInput" type="file" accept="application/json" style="display:none">
+      <div class="muted" style="font-size:12px;margin-top:8px">Sao lưu/khôi phục dữ liệu cục bộ trên thiết bị này.</div>
+    </div>
+
     <div class="card" style="display:none">
       <h3>Quản trị / Dữ liệu cục bộ</h3>
       <div class="row">
@@ -3862,6 +4026,33 @@ function viewSettings(){
     delRecurring(Number(b.dataset.id));
     viewSettings();
   });
+
+  /* Export / Import local data */
+  const exportDataBtn = document.getElementById('exportDataBtn');
+  if(exportDataBtn){
+    exportDataBtn.onclick = ()=>{ exportAllData(); };
+  }
+
+  const importDataBtn = document.getElementById('importDataBtn');
+  const importDataInput = document.getElementById('importDataInput');
+  if(importDataBtn && importDataInput){
+    importDataBtn.onclick = ()=>{ importDataInput.click(); };
+    importDataInput.onchange = async ()=>{
+      const file = importDataInput.files && importDataInput.files[0];
+      if(!file){
+        importDataInput.value='';
+        return;
+      }
+      try{
+        await importAllData(file);
+      }catch(err){
+        console.error(err);
+        alert('Không thể import dữ liệu. Vui lòng thử lại.');
+      }finally{
+        importDataInput.value='';
+      }
+    };
+  }
 
   /* Local wipe */
   document.getElementById('wipeLocalBtn').onclick = ()=>{
