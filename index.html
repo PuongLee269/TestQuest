@@ -533,6 +533,41 @@ ul{list-style:none;margin:0;padding:0}
   box-shadow:0 4px 10px rgba(0,0,0,.08);
 }
 
+.zone-e-toolbar{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:12px 16px 0;
+  background:rgba(0,0,0,.01);
+}
+.zone-e-toolbar-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.zone-e-toolbar-title{
+  font-weight:600;
+  font-size:14px;
+}
+.zone-e-preset-picker{
+  display:none;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:0 0 12px;
+}
+.zone-e-preset-picker.open{display:flex;}
+.zone-e-preset-points{
+  font-weight:600;
+  color:#5a4cc1;
+}
+.zone-e-preset-picker .muted{padding:6px 0;}
+.zone-e-preset-option{
+  gap:6px;
+  display:inline-flex;
+  align-items:center;
+}
+
 /* swipe task row */
 li.task{
   position:relative;
@@ -706,6 +741,11 @@ const CONFIG = {
   VERSION:'1.0',
   ENDPOINT:'https://script.google.com/macros/s/AKfycbyQ3imjnhKrzmuz4-KbPNsHzpYGY_Mv45os1bZEPoQrQ-UM8RjJvCznfP5x6RB6QX_Qpw/exec',
   SETTINGS_PASS:'1000',
+  ZONE_E_TASK_PRESETS:[
+    { text:'Tập thể dục 30 phút', points:2 },
+    { text:'Đọc sách 20 phút', points:1 },
+    { text:'Ngủ trước 23h', points:1 }
+  ],
   HERO_LEVELS:[
     {
       minLevel:1,
@@ -1881,7 +1921,9 @@ async function addRecurring(r){
   const z = zones.find(z => z.id == rec.zoneId);
   const zoneKind = z ? z.kind : 'regular';
 
-  rec.points = getDefaultPointsForZoneKind(zoneKind); // lưu điểm base cho recurring
+  const fallbackPoints = getDefaultPointsForZoneKind(zoneKind);
+  const normalizedPoints = Number.isFinite(Number(rec.points)) ? Number(rec.points) : fallbackPoints;
+  rec.points = normalizedPoints; // lưu điểm base cho recurring
   if('reason' in rec){
     delete rec.reason;
   }
@@ -3226,6 +3268,13 @@ async function viewTasks(){
   const noiseStore = getNoiseStreakStore();
   const zoneEStore = getZoneEStreakStore();
   const pointExtraStores = { noise: noiseStore, zoneE: zoneEStore };
+  const zoneEPresets = Array.isArray(CONFIG.ZONE_E_TASK_PRESETS) ? CONFIG.ZONE_E_TASK_PRESETS : [];
+  const formatPresetPoints = (pts)=>{
+    const num = Number(pts);
+    if(!Number.isFinite(num)) return '+0 E';
+    const sign = num>=0?'+':'';
+    return `${sign}${num} E`;
+  };
   const dateNowDM = todayDM();
   let priorityZone = zones.find(z => z.kind === 'priority');
 
@@ -3318,12 +3367,32 @@ async function viewTasks(){
           }).join('')
         : emptyStateHtml;
 
+      const zoneEPresetHtml = z.kind === 'e'
+        ? (()=>{
+            const optionsHtml = zoneEPresets.length
+              ? zoneEPresets.map((p, idx)=>`<button class="btn-ghost btn-sm zone-e-preset-option" data-zone-e="${z.id}" data-zone-e-preset-option="${idx}">${p.text} <span class="zone-e-preset-points">${formatPresetPoints(p.points)}</span></button>`).join('')
+              : `<span class="muted">Chưa có preset nào. Hãy thêm trong CONFIG.ZONE_E_TASK_PRESETS.</span>`;
+            return `
+              <div class="zone-e-toolbar">
+                <div class="zone-e-toolbar-head">
+                  <span class="zone-e-toolbar-title">Preset Zone E</span>
+                  <button class="btn-ghost btn-sm zone-e-preset-trigger" data-zone-e="${z.id}" title="Chọn preset cho Zone E">+</button>
+                </div>
+                <div class="zone-e-preset-picker" data-zone-e-picker="${z.id}">
+                  ${optionsHtml}
+                </div>
+              </div>
+            `;
+          })()
+        : '';
+
       return `
       <section class="zone">
         <header class="${headerClass}" style="${headerStyle}">
           <div><b>${z.name}</b> <span class="badge">${g.kindLabel}</span></div>
           <div class="badge">${g.progressText}</div>
         </header>
+        ${zoneEPresetHtml}
         <ul>
           ${listHtml}
         </ul>
@@ -3334,11 +3403,10 @@ async function viewTasks(){
   const inp = document.getElementById('taskText');
   const sel = document.getElementById('taskZone');
 
-  async function addNow(){
-    const text=(inp.value||'').trim(); if(!text) return;
-    const zoneId = Number(sel.value);
+  async function createTaskForZone(textInput, zoneId, pointsOverride){
+    const text=(textInput||'').trim(); if(!text) return false;
     const z = zones.find(z=>z.id==zoneId);
-    if(!z) return;
+    if(!z) return false;
 
     const currentTasks = getTasks();
 
@@ -3349,7 +3417,7 @@ async function viewTasks(){
       const activeInE = getZoneActiveTasks(currentTasks, z.id).length;
       if (activeInE >= zoneELimit) {
         alert(`Zone E hiện giới hạn ${zoneELimit} task/ngày (Level 1: 5 task, từ Level 2: 6 task). Hãy hoàn thành bớt trước khi thêm mới nhé!`);
-        return;
+        return false;
       }
     }
 
@@ -3358,11 +3426,12 @@ async function viewTasks(){
       const activePriorityTasks = getZoneActiveTasks(currentTasks, z.id).length;
       if (activePriorityTasks >= 3) {
         alert('Zone Quan trọng chỉ có thể có tối đa 3 nhiệm vụ đang hoạt động. Hãy hoàn thành bớt trước khi thêm mới nhé!');
-        return;
+        return false;
       }
     }
 
-    const basePoints = getDefaultPointsForZoneKind(z.kind);
+    const overridePoints = Number(pointsOverride);
+    const basePoints = Number.isFinite(overridePoints) ? overridePoints : getDefaultPointsForZoneKind(z.kind);
     const newTasks = [...currentTasks];
 
     if(DAILY_ZONE_KINDS.has(z.kind)){
@@ -3374,7 +3443,8 @@ async function viewTasks(){
           text,
           zoneId:z.id,
           type:'daily',
-          autoKind:z.kind
+          autoKind:z.kind,
+          points: basePoints
         });
       }else{
         let recChanged = false;
@@ -3428,8 +3498,15 @@ async function viewTasks(){
     }
 
     setTasks(newTasks);
-    inp.value='';
     render('tasks');
+    return true;
+  }
+
+  async function addNow(){
+    const success = await createTaskForZone(inp.value, Number(sel.value));
+    if(success){
+      inp.value='';
+    }
   }
 
   document.getElementById('btnAdd').onclick = addNow;
@@ -3442,6 +3519,33 @@ async function viewTasks(){
       inp.focus();
     }
   };
+
+  const toggleZoneEPicker = (zoneId, open)=>{
+    const picker = view.querySelector(`[data-zone-e-picker="${zoneId}"]`);
+    if(!picker) return;
+    const shouldOpen = typeof open==='boolean' ? open : !picker.classList.contains('open');
+    picker.classList.toggle('open', shouldOpen);
+  };
+
+  view.querySelectorAll('.zone-e-preset-trigger').forEach(btn=>{
+    btn.onclick=()=>{
+      const zoneId = Number(btn.dataset.zoneE);
+      toggleZoneEPicker(zoneId);
+    };
+  });
+
+  view.querySelectorAll('.zone-e-preset-option').forEach(btn=>{
+    btn.onclick=async ()=>{
+      const zoneId = Number(btn.dataset.zoneE);
+      const idx = Number(btn.dataset.zoneEPresetOption);
+      const preset = zoneEPresets[idx];
+      if(!preset) return;
+      const ok = await createTaskForZone(preset.text, zoneId, preset.points);
+      if(ok){
+        toggleZoneEPicker(zoneId, false);
+      }
+    };
+  });
 
   // tick task
   view.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
