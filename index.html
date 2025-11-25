@@ -2101,8 +2101,8 @@ function isTaskActiveToday(t){
 
 function doesTaskOccupyCapacity(task){
   if(!task) return false;
-  if(task.kind==='recurring') return true;
-  if(task.kind==='single') return true;
+  if(task.kind==='recurring') return !task.done;
+  if(task.kind==='single') return !task.done;
   return !task.done;
 }
 
