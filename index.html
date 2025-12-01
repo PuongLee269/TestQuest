@@ -1303,8 +1303,7 @@ function renderZoneETaskProgress(task, zoneEStore){
   if(!zoneEStore || !task || task.kind !== 'recurring') return '';
   const key = getNoiseTaskKey(task);
   if(!key) return '';
-  const entry = zoneEStore[key];
-  if(!entry) return '';
+  const entry = zoneEStore[key] || { level: ZONE_E_START_LEVEL, streak: 0 };
 
   const level = (entry.level ?? entry.basePoints ?? ZONE_E_START_LEVEL);
   const streakValue = parseNoiseStreak(entry.streak);
@@ -1333,11 +1332,10 @@ function renderZoneNoiseTaskProgress(task, noiseStore){
   if(!noiseStore || !task || task.kind !== 'recurring') return '';
   const key = getNoiseTaskKey(task);
   if(!key) return '';
-  const entry = noiseStore[key];
-  if(!entry) return '';
+  const entry = noiseStore[key] || { basePoints: NOISE_STREAK_MIN_POINTS, streak: 0 };
 
   const basePoints = clampNoiseBasePoints(entry.basePoints);
-  if(basePoints <= NOISE_STREAK_MIN_POINTS) return '';
+  if(basePoints < NOISE_STREAK_MIN_POINTS) return '';
   const currentPoints = clampNoiseBasePoints(task.points);
   const totalPenaltyWindow = Math.max(1, basePoints - NOISE_STREAK_MIN_POINTS);
   const penaltyDepth = Math.max(0, Math.min(totalPenaltyWindow, basePoints - currentPoints));
