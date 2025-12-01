@@ -2753,7 +2753,8 @@ function performDayRollover(opts={}){
     setLastRealDate(todayDM());
 
     if(!auto){
-      alert('Đã qua ngày. Bạn bị trừ 7 E theo luật ngày mới.');
+      const penaltyAmount = Math.abs(dailyPenalty);
+      alert(`Đã qua ngày. Bạn bị trừ ${penaltyAmount} E theo luật ngày mới.`);
     }
 
     autoSync()
