@@ -1178,6 +1178,8 @@ const ZONE_E_FIRST_MILESTONE = 5;
 const ZONE_E_MILESTONE_MULTIPLIER = 1.2;
 const ZONE_E_CROWN_ICON_DAYS = 10;
 const ZONE_E_MAX_CROWN_ICONS = 3;
+const ZONE_E_CROWN_REACTIVATION_STREAK = 7;
+const ZONE_E_FALLBACK_LEVEL_AFTER_CROWN_LOSS = 5;
 
 function clampNoiseBasePoints(value){
   const n = Number(value);
@@ -1245,7 +1247,10 @@ function applyZoneEProgress(prevEntry, didComplete){
   const prevLevel = clampZoneELevel(prevEntry && (prevEntry.level ?? prevEntry.basePoints));
   let streak = parseNoiseStreak(prevEntry && prevEntry.streak);
   let level = prevLevel;
-  const prevCrownActive = prevLevel >= ZONE_E_CROWN_LEVEL || !!(prevEntry && prevEntry.crownActive);
+  const prevCrownActive = prevEntry && Object.prototype.hasOwnProperty.call(prevEntry, 'crownActive')
+    ? !!prevEntry.crownActive
+    : prevLevel >= ZONE_E_CROWN_LEVEL;
+  let crownActive = prevCrownActive;
   let crownIcons = parseCrownIcons(prevEntry && prevEntry.crownIcons);
   let crownMaintainedDays = parseCrownMaintainedDays(prevEntry && prevEntry.crownMaintainedDays);
 
@@ -1261,29 +1266,48 @@ function applyZoneEProgress(prevEntry, didComplete){
       }
     }
     if(level >= ZONE_E_CROWN_LEVEL){
-      if(crownIcons >= ZONE_E_MAX_CROWN_ICONS){
+      if(!crownActive && streak >= ZONE_E_CROWN_REACTIVATION_STREAK){
+        streak -= ZONE_E_CROWN_REACTIVATION_STREAK;
+        crownActive = true;
         crownMaintainedDays = 0;
-      }else{
-        crownMaintainedDays = prevCrownActive ? crownMaintainedDays + 1 : 1;
-        if(crownMaintainedDays >= ZONE_E_CROWN_ICON_DAYS){
-          crownIcons = Math.min(ZONE_E_MAX_CROWN_ICONS, crownIcons + 1);
+      }
+
+      if(crownActive){
+        if(crownIcons >= ZONE_E_MAX_CROWN_ICONS){
           crownMaintainedDays = 0;
+        }else{
+          crownMaintainedDays = crownMaintainedDays + 1;
+          if(crownMaintainedDays >= ZONE_E_CROWN_ICON_DAYS){
+            crownIcons = Math.min(ZONE_E_MAX_CROWN_ICONS, crownIcons + 1);
+            crownMaintainedDays = 0;
+          }
         }
+      }else{
+        crownMaintainedDays = 0;
       }
     }else{
+      crownActive = false;
       crownMaintainedDays = 0;
     }
   }else{
-    if(level >= ZONE_E_CROWN_LEVEL){
-      level = Math.max(ZONE_E_START_LEVEL, level - 1);
+    const atCrownLevel = level >= ZONE_E_CROWN_LEVEL;
+    if(atCrownLevel){
+      if(crownIcons > 0){
+        crownIcons = crownIcons - 1;
+        crownActive = false;
+        level = ZONE_E_CROWN_LEVEL;
+      }else{
+        level = Math.max(ZONE_E_START_LEVEL, Math.min(ZONE_E_CROWN_LEVEL, ZONE_E_FALLBACK_LEVEL_AFTER_CROWN_LOSS));
+        crownActive = false;
+      }
     }else{
       level = ZONE_E_START_LEVEL;
+      crownActive = false;
     }
     streak = 0;
     crownMaintainedDays = 0;
   }
 
-  const crownActive = level >= ZONE_E_CROWN_LEVEL;
   return { basePoints: level, level, streak, crownActive, crownIcons, crownMaintainedDays };
 }
 
@@ -1322,7 +1346,10 @@ function normalizeZoneEEntry(raw){
   const levelVal = raw.level != null ? raw.level : raw.basePoints;
   const level = clampZoneELevel(levelVal);
   const streak = parseNoiseStreak(raw.streak);
-  const crownActive = level >= ZONE_E_CROWN_LEVEL ? true : !!raw.crownActive;
+  const hasCrownActiveFlag = Object.prototype.hasOwnProperty.call(raw, 'crownActive');
+  const crownActive = level >= ZONE_E_CROWN_LEVEL
+    ? (hasCrownActiveFlag ? !!raw.crownActive : true)
+    : false;
   const crownIcons = parseCrownIcons(raw.crownIcons);
   const crownMaintainedDays = parseCrownMaintainedDays(raw.crownMaintainedDays);
   return { basePoints: level, level, streak, crownActive, crownIcons, crownMaintainedDays };
@@ -1361,21 +1388,26 @@ function renderZoneETaskProgress(task, zoneEStore){
   const nextRequirement = getZoneENextRequirement(level);
   const crownIcons = parseCrownIcons(entry.crownIcons);
   const crownMaintainedDays = parseCrownMaintainedDays(entry.crownMaintainedDays);
-  const crownActive = !!entry.crownActive || (level != null && level >= ZONE_E_CROWN_LEVEL);
+  const crownActive = level >= ZONE_E_CROWN_LEVEL ? entry.crownActive !== false : !!entry.crownActive;
+  const reactivationRequirement = !crownActive && level >= ZONE_E_CROWN_LEVEL ? ZONE_E_CROWN_REACTIVATION_STREAK : null;
   const progressRatio = crownActive
     ? (crownIcons >= ZONE_E_MAX_CROWN_ICONS
       ? 1
       : Math.max(0, Math.min(1, crownMaintainedDays / ZONE_E_CROWN_ICON_DAYS)))
-    : Math.max(0, Math.min(1, nextRequirement ? streakValue / nextRequirement : 0));
+    : reactivationRequirement
+      ? Math.max(0, Math.min(1, streakValue / reactivationRequirement))
+      : Math.max(0, Math.min(1, nextRequirement ? streakValue / nextRequirement : 0));
   const widthPercent = Math.round(progressRatio * 1000) / 10;
   const progressLabel = crownActive
     ? (crownIcons >= ZONE_E_MAX_CROWN_ICONS
       ? `Crown icons: ${crownIcons}/${ZONE_E_MAX_CROWN_ICONS}`
       : `Crown day: ${crownMaintainedDays}/${ZONE_E_CROWN_ICON_DAYS}`)
-    : nextRequirement
-      ? `${streakValue}/${nextRequirement}`
-      : `${streakValue}`;
-  const crownIconDisplay = crownActive && crownIcons > 0
+    : reactivationRequirement
+      ? `Khôi phục crown: ${streakValue}/${reactivationRequirement}`
+      : nextRequirement
+        ? `${streakValue}/${nextRequirement}`
+        : `${streakValue}`;
+  const crownIconDisplay = crownIcons > 0
     ? `<span class="task-progress-icons" aria-label="Crown icons: ${crownIcons}/${ZONE_E_MAX_CROWN_ICONS}">${'👑'.repeat(crownIcons)}</span>`
     : '';
 
@@ -2210,7 +2242,7 @@ function getTaskPointExtras(task, zoneKind, stores){
       const entry = zoneEStore[key];
       const level = clampZoneELevel(entry.level ?? entry.basePoints);
       const streak = parseNoiseStreak(entry.streak);
-      const crownActive = level >= ZONE_E_CROWN_LEVEL || !!entry.crownActive;
+      const crownActive = level >= ZONE_E_CROWN_LEVEL ? entry.crownActive !== false : !!entry.crownActive;
       const crownIcons = parseCrownIcons(entry.crownIcons);
       const crownMaintainedDays = parseCrownMaintainedDays(entry.crownMaintainedDays);
       const next = getZoneENextRequirement(level);
@@ -2221,12 +2253,18 @@ function getTaskPointExtras(task, zoneKind, stores){
         if(crownIcons < ZONE_E_MAX_CROWN_ICONS){
           tooltipParts.push(`Ngày duy trì crown: ${crownMaintainedDays}/${ZONE_E_CROWN_ICON_DAYS}`);
         }
+      }else if(level >= ZONE_E_CROWN_LEVEL){
+        tooltipParts.push('Crown đang tắt do miss, cần streak mới để bật lại');
+        tooltipParts.push(`Streak khôi phục: ${streak}/${ZONE_E_CROWN_REACTIVATION_STREAK}`);
+        tooltipParts.push(`Biểu tượng còn lại: ${crownIcons}/${ZONE_E_MAX_CROWN_ICONS}`);
       }else if(next){
         tooltipParts.push(`Streak: ${streak}/${next}`);
       }else{
         tooltipParts.push(`Streak: ${streak}`);
       }
-      const iconRepeat = crownActive ? Math.max(1, Math.min(ZONE_E_MAX_CROWN_ICONS, crownIcons || 1)) : 0;
+      const iconRepeat = crownIcons > 0 && level >= ZONE_E_CROWN_LEVEL
+        ? Math.max(1, Math.min(ZONE_E_MAX_CROWN_ICONS, crownIcons || 1))
+        : 0;
       return {
         icon: iconRepeat ? '👑'.repeat(iconRepeat) : '',
         tooltip: tooltipParts.join(' — ')
