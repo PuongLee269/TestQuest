@@ -2057,6 +2057,10 @@ function getZoneActiveTasks(tasks, zoneId){
   return tasks.filter(t=>t.zoneId==zoneId && doesTaskOccupyCapacity(t));
 }
 
+function countZoneTasks(tasks, zoneId){
+  return tasks.filter(t=>t.zoneId==zoneId).length;
+}
+
 function describeTaskKind(task, zone){
   if(task.kind==='recurring'){
     return zone && zone.kind==='noise' ? 'Hằng ngày (-)' : 'Hằng ngày';
@@ -3345,18 +3349,18 @@ async function viewTasks(){
     if (z.kind === 'e') {
       const { level } = getLevelInfo();
       const zoneELimit = level >= 2 ? 6 : 5;
-      const activeInE = getZoneActiveTasks(currentTasks, z.id).length;
-      if (activeInE >= zoneELimit) {
-        alert(`Zone E hiện giới hạn ${zoneELimit} task/ngày (Level 1: 5 task, từ Level 2: 6 task). Hãy hoàn thành bớt trước khi thêm mới nhé!`);
+      const totalInE = countZoneTasks(currentTasks, z.id);
+      if (totalInE >= zoneELimit) {
+        alert(`Zone E hiện giới hạn tổng cộng ${zoneELimit} task (Level 1: 5 task, từ Level 2: 6 task), tính cả nhiệm vụ đã hoàn thành. Hãy dọn bớt trước khi thêm mới nhé!`);
         return false;
       }
     }
 
     // Limit for Priority Zone
     if (z.kind === 'priority') {
-      const activePriorityTasks = getZoneActiveTasks(currentTasks, z.id).length;
-      if (activePriorityTasks >= 3) {
-        alert('Zone Quan trọng chỉ có thể có tối đa 3 nhiệm vụ đang hoạt động. Hãy hoàn thành bớt trước khi thêm mới nhé!');
+      const totalPriorityTasks = countZoneTasks(currentTasks, z.id);
+      if (totalPriorityTasks >= 3) {
+        alert('Zone Quan trọng chỉ có thể có tối đa 3 nhiệm vụ tổng cộng (kể cả đã hoàn thành). Hãy dọn bớt trước khi thêm mới nhé!');
         return false;
       }
     }
