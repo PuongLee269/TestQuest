@@ -1542,10 +1542,14 @@ function getLevelInfo(){
   const cfg = LEVELS.find(x=>x.lvl===p.level) || lastLevelCfg();
   return {level:p.level, xp:p.xp, need:cfg.need||0};
 }
-function resetPoints(){
-  const p=getProfile(); p.level=1; p.xp=0; save(LS.PROFILE,p);
-  renderHero();
+function getDailyPenalty(levelInput){
+  const level = Math.max(1, Math.floor(Number(levelInput ?? getLevelInfo().level) || 1));
+  return -5 - 2 * (level - 1);
 }
+  function resetPoints(){
+    const p=getProfile(); p.level=1; p.xp=0; save(LS.PROFILE,p);
+    renderHero();
+  }
 function ensureName(){
   const p=getProfile();
   if(!p.name){
@@ -2426,18 +2430,20 @@ function performDayRollover(opts={}){
       ? Math.min(5, Math.max(3, completedZoneECount))
       : 0;
 
-    if (zoneEBonus > 0) {
-      localStorage.setItem(LS.ZONE_E_BONUS_DAY, String(todaySim));
-      addXP(zoneEBonus);
-    }
+      if (zoneEBonus > 0) {
+        localStorage.setItem(LS.ZONE_E_BONUS_DAY, String(todaySim));
+        addXP(zoneEBonus);
+      }
 
-    // Daily penalty
-    addXP(-7);
+      // Daily penalty
+      const { level: currentLevel } = getLevelInfo();
+      const dailyPenalty = getDailyPenalty(currentLevel);
+      addXP(dailyPenalty);
 
-    const recsRaw = getRecurring();
-    const recs = Array.isArray(recsRaw) ? recsRaw : [];
-    const recMap = new Map();
-    const recZoneKind = new Map();
+      const recsRaw = getRecurring();
+      const recs = Array.isArray(recsRaw) ? recsRaw : [];
+      const recMap = new Map();
+      const recZoneKind = new Map();
     const validNoiseKeys = new Set();
     const zoneEStreakStore = getZoneEStreakStore();
     const nextZoneEStreakStore = { ...zoneEStreakStore };
