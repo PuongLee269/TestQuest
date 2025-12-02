@@ -3849,13 +3849,6 @@ function viewSettings(){
       </div>
       <div class="bar"><div class="fill" style="width:${need?Math.min(100,Math.round(xp/need*100)):100}%;"></div></div>
 
-      <div class="row">
-        <div>Hành động</div>
-        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
-          <button class="btn-ghost" id="btnEnd">Qua ngày</button>
-          <button class="btn-danger" id="btnReset">Reset điểm</button>
-        </div>
-      </div>
     </div>
 
     <div class="card">
@@ -4006,10 +3999,6 @@ function viewSettings(){
     reader.onload=()=>cb(reader.result);
     reader.readAsDataURL(file);
   }
-
-  /* Ngày & Điểm buttons */
-  document.getElementById('btnEnd').onclick = ()=>{ handleEndDay(); };
-  document.getElementById('btnReset').onclick = ()=>{ handleResetPoints(); };
 
   /* Hồ sơ người chơi */
   document.getElementById('saveName').onclick=()=>{
